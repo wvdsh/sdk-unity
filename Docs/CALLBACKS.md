@@ -18,12 +18,12 @@ Wavedash.OnLobbyLeft      // Called when player leaves a lobby
 ```csharp
 using Wavedash;
 
-void OnEnable() {
-    Wavedash.OnLobbyJoined += HandleLobbyJoined;
+void Start() {
+    Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
 }
 
-void OnDisable() {
-    Wavedash.OnLobbyJoined -= HandleLobbyJoined;
+void OnDestroy() {
+    Wavedash.SDK.OnLobbyJoined -= HandleLobbyJoined;
 }
 
 void HandleLobbyJoined(Dictionary<string, object> lobbyData) {
