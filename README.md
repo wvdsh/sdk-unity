@@ -21,7 +21,7 @@ A Unity package for WebGL builds to interact with the WavedashJS SDK in the brow
 using Wavedash;
 
 // Initialize once at game start
-Wavedash.Init(new Dictionary<string, object>
+Wavedash.SDK.Init(new Dictionary<string, object>
 {
     { "gameId", "your-game-id" },
     { "debug", true }
@@ -30,8 +30,8 @@ Wavedash.Init(new Dictionary<string, object>
 
 ### Check if Ready & Get User
 ```csharp
-if (Wavedash.IsReady()) {
-    var user = Wavedash.GetUser();
+if (Wavedash.SDK.IsReady()) {
+    var user = Wavedash.SDK.GetUser();
     Debug.Log($"User: {user}");
 }
 ```
@@ -39,9 +39,28 @@ if (Wavedash.IsReady()) {
 ### Handle Backend Events
 ```csharp
 // Subscribe to events
-Wavedash.OnLobbyJoined += (lobbyData) => {
-    string lobbyName = lobbyData["name"].ToString();
-    Debug.Log($"Joined lobby: {lobbyName}");
+void Start()
+{
+  // Simple global call
+  Wavedash.SDK.Init(new Dictionary<string, object>
+  {
+      { "gameId", "hello-world" },
+      { "debug", true }
+  });
+  
+  // Subscribe to events after initialization
+  Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
+}
+
+// Remove the callback on destroy to ensure proper cleanup when your component is destroyed
+void OnDestroy()
+{
+  Wavedash.SDK.OnLobbyJoined -= HandleLobbyJoined;
+}
+
+void HandleLobbyJoined(Dictionary<string, object> lobbyData) {
+    string lobbyId = lobbyData["id"].ToString();
+    Debug.Log($"Joined lobby: {lobbyId}");
 };
 ```
 
@@ -49,32 +68,10 @@ Wavedash.OnLobbyJoined += (lobbyData) => {
 
 The SDK supports receiving events from the Wavedash backend through WavedashJS:
 
-```javascript
-
-window.WavedashJS = {
-  // Unity SDK automatically registers itself
-  setUnityInstance: function(unityInstance, gameObjectName) {
-    this._unityInstance = unityInstance;
-    this._unityGameObjectName = gameObjectName;
-  },
-  
-  // Wavedash backend calls this to notify Unity
-  notifyLobbyJoined: function(lobbyData) {
-    this._unityInstance.SendMessage(
-      this._unityGameObjectName,
-      'OnLobbyJoinedCallback',
-      JSON.stringify(lobbyData)
-    );
-  }
-
-  // ...
-};
-```
-
 ## Available Events
 
-- `Wavedash.OnLobbyJoined` - Player joined a lobby
-- `Wavedash.OnLobbyLeft` - Player left a lobby
+- `Wavedash.SDK.OnLobbyJoined` - Player joined a lobby
+- `Wavedash.SDK.OnLobbyLeft` - Player left a lobby
 
 ## Project Structure
 
@@ -90,7 +87,7 @@ window.WavedashJS = {
 
 - Unity 2021.3 or higher
 - WebGL build target
-- WavedashJS SDK loaded in the web page that runs the game (Wavedash.gg handles this)
+- WavedashJS SDK must be loaded in the web page that hosts the game (wavedash.gg handles this)
 
 ## Testing
 

@@ -32,7 +32,7 @@ public class WavedashExample : MonoBehaviour
     void HandleLobbyJoined(Dictionary<string, object> lobbyData) {
         Debug.Log("Custom LobbyJoined callback triggered");
         string lobbyId = lobbyData["lobbyId"].ToString();
-        string lobbyName = lobbyData["lobbyName"].ToString();
+        string lobbyName = lobbyData["name"].ToString();
         Debug.Log($"Joined lobby: {lobbyId}");
         Debug.Log($"Lobby name: {lobbyName}");
         Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
