@@ -107,6 +107,7 @@ namespace Wavedash
             // Called by JavaScript via SendMessage
             public void OnLobbyJoinedCallback(string dataJson)
             {
+                Debug.Log("OnLobbyJoinedCallback triggered with: " + dataJson);
                 try
                 {
                     var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);

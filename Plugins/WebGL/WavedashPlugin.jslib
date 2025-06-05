@@ -44,13 +44,12 @@ mergeInto(LibraryManager.library, {
     var gameObjectName = UTF8ToString(gameObjectNamePtr);
     
     if (typeof window !== 'undefined' && window.WavedashJS) {
-      // Pass the Unity instance and GameObject name directly to WavedashJS
-      // This way WavedashJS can store them internally without window exposure
-      if (typeof window.WavedashJS.setUnityInstance === 'function') {
-        // Get Unity instance from the Module (Unity's internal reference)
-        var _unityInstance = Module.unityInstance;
-        
-        window.WavedashJS.setUnityInstance(_unityInstance, gameObjectName);
+      // Register the callback GameObject name with WavedashJS
+      // The Unity instance should be provided by the hosting page
+      if (typeof window.WavedashJS.registerUnityCallbackReceiver === 'function') {
+        window.WavedashJS.registerUnityCallbackReceiver(gameObjectName);
+      } else {
+        console.warn("[Unity] WavedashJS.registerUnityCallbackReceiver not found. Make sure WavedashJS is properly initialized.");
       }
     }
   }

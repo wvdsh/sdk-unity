@@ -17,8 +17,25 @@ public class WavedashExample : MonoBehaviour
         // Simple global call
         Wavedash.SDK.Init(config);
         
+        // Subscribe to events after initialization
+        Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
+        
         // Check if ready after a short delay
         Invoke(nameof(CheckWavedashStatus), 0.5f);
+    }
+
+    void OnDestroy() {
+        // Unsubscribe from events when the GameObject is destroyed
+        Wavedash.SDK.OnLobbyJoined -= HandleLobbyJoined;
+    }
+
+    void HandleLobbyJoined(Dictionary<string, object> lobbyData) {
+        Debug.Log("Custom LobbyJoined callback triggered")
+        string lobbyId = lobbyData["lobbyId"].ToString();
+        string lobbyName = lobbyData["lobbyName"].ToString();
+        Debug.Log($"Joined lobby: {lobbyId}");
+        Debug.Log($"Lobby name: {lobbyName}");
+        Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 
     void CheckWavedashStatus()
