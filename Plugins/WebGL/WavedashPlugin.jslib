@@ -48,7 +48,7 @@ mergeInto(LibraryManager.library, {
       // This way WavedashJS can store them internally without window exposure
       if (typeof window.WavedashJS.setUnityInstance === 'function') {
         // Get Unity instance from the Module (Unity's internal reference)
-        var _unityInstance = Module.unityInstance || unityInstance;
+        var _unityInstance = Module.unityInstance;
         
         window.WavedashJS.setUnityInstance(_unityInstance, gameObjectName);
       }
