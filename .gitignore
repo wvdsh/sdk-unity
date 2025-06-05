@@ -1,0 +1,18 @@
+# Unity generated
+*.meta
+*.tmp
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Build artifacts
+/Build/
+/Temp/
+
+# Logs
+*.log
