@@ -5,6 +5,12 @@ using Newtonsoft.Json;
 
 public class WavedashExample : MonoBehaviour
 {
+    void Awake()
+    {
+        Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
+        Wavedash.SDK.OnReady += HandleWavedashReady;
+    }
+
     void Start()
     {
         // Initialize Wavedash with your configuration
@@ -16,21 +22,17 @@ public class WavedashExample : MonoBehaviour
         
         // Simple global call
         Wavedash.SDK.Init(config);
-        
-        // Subscribe to events after initialization
-        Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
-        
-        // Check if ready after a short delay
-        Invoke(nameof(CheckWavedashStatus), 0.5f);
     }
 
-    void OnDestroy() {
+    void OnDestroy()
+    {
         // Unsubscribe from events when the GameObject is destroyed
         Wavedash.SDK.OnLobbyJoined -= HandleLobbyJoined;
+        Wavedash.SDK.OnReady -= HandleWavedashReady;
     }
 
-    void HandleLobbyJoined(Dictionary<string, object> lobbyData) {
-        Debug.Log("Custom LobbyJoined callback triggered");
+    void HandleLobbyJoined(Dictionary<string, object> lobbyData)
+    {
         string lobbyId = lobbyData["id"].ToString();
         string lobbyName = lobbyData["name"].ToString();
         Debug.Log($"Joined lobby: {lobbyId}");
@@ -38,37 +40,17 @@ public class WavedashExample : MonoBehaviour
         Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 
-    void CheckWavedashStatus()
+    void HandleWavedashReady()
     {
-        // Simple global call to check status
-        bool isReady = Wavedash.SDK.IsReady();
-        
-        if (isReady)
+        Debug.Log("WavedashJS SDK is ready!");
+        Dictionary<string, object> user = Wavedash.SDK.GetUser();
+        if (user != null)
         {
-            Debug.Log("WavedashJS SDK is ready!");
-            
-            // Get user data with simple global call
-            Dictionary<string, object> user = Wavedash.SDK.GetUser();
-            if (user != null)
-            {
-                Debug.Log($"User data retrieved: {JsonConvert.SerializeObject(user)}");
-            }
-            else
-            {
-                Debug.Log("No user data available");
-            }
+            Debug.Log($"User data retrieved: {JsonConvert.SerializeObject(user)}");
         }
         else
         {
-            Debug.Log("WavedashJS SDK is not ready yet");
-            // Retry after a delay
-            Invoke(nameof(CheckWavedashStatus), 1f);
+            Debug.Log("No user data available");
         }
-    }
-    
-    // Example of checking status on demand
-    public void CheckStatus()
-    {
-        CheckWavedashStatus();
     }
 } 
