@@ -42,12 +42,12 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             // Ensure callback receiver exists
             EnsureCallbackReceiver();
+
+            // Register Unity callbacks with JavaScript
+            WavedashJS_RegisterUnityCallbacks(_callbackReceiver.gameObject.name);
             
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
-            
-            // Register Unity callbacks with JavaScript
-            WavedashJS_RegisterUnityCallbacks(_callbackReceiver.gameObject.name);
 #else
             Debug.LogWarning("Wavedash.SDK.Init() is only supported in WebGL builds");
 #endif
