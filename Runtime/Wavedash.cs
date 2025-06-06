@@ -13,6 +13,7 @@ namespace Wavedash
     public static class SDK
     {
         // Events that JavaScript can trigger
+        public static event Action OnReady;
         public static event Action<Dictionary<string, object>> OnLobbyJoined;
         public static event Action<Dictionary<string, object>> OnLobbyLeft;
         
@@ -130,6 +131,11 @@ namespace Wavedash
                 {
                     Debug.LogError($"Failed to parse lobby left data: {e.Message}");
                 }
+            }
+
+            public void OnReadyCallback()
+            {
+                OnReady?.Invoke();
             }
         }
     }

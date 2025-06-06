@@ -31,7 +31,7 @@ public class WavedashExample : MonoBehaviour
 
     void HandleLobbyJoined(Dictionary<string, object> lobbyData) {
         Debug.Log("Custom LobbyJoined callback triggered");
-        string lobbyId = lobbyData["lobbyId"].ToString();
+        string lobbyId = lobbyData["id"].ToString();
         string lobbyName = lobbyData["name"].ToString();
         Debug.Log($"Joined lobby: {lobbyId}");
         Debug.Log($"Lobby name: {lobbyName}");
@@ -48,7 +48,7 @@ public class WavedashExample : MonoBehaviour
             Debug.Log("WavedashJS SDK is ready!");
             
             // Get user data with simple global call
-            var user = Wavedash.SDK.GetUser();
+            Dictionary<string, object> user = Wavedash.SDK.GetUser();
             if (user != null)
             {
                 Debug.Log($"User data retrieved: {JsonConvert.SerializeObject(user)}");
