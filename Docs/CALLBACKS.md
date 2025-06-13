@@ -27,7 +27,7 @@ void OnDestroy() {
 }
 
 void HandleLobbyJoined(Dictionary<string, object> lobbyData) {
-    string lobbyId = lobbyData["lobbyId"].ToString();
+    string lobbyId = lobbyData["id"].ToString();
     Debug.Log($"Joined lobby: {lobbyId}");
 }
 ```
@@ -83,7 +83,7 @@ In the browser console:
 ```javascript
 // Test a callback
 WavedashJS.notifyLobbyJoined({
-  lobbyId: "test-123",
+  id: "test-123",
   name: "Test Lobby",
   playerCount: 1,
   maxPlayers: 4

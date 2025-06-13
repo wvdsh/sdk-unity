@@ -8,7 +8,7 @@ public class WavedashExample : MonoBehaviour
     void Awake()
     {
         Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
-        Wavedash.SDK.OnReady += HandleWavedashReady;
+        Wavedash.SDK.OnLobbyLeft += HandleLobbyLeft;
     }
 
     void Start()
@@ -22,13 +22,29 @@ public class WavedashExample : MonoBehaviour
         
         // Simple global call
         Wavedash.SDK.Init(config);
+
+        // Init is synchronous, SDK should be ready immediately
+        if (Wavedash.SDK.IsReady())
+        {
+            Debug.Log("WavedashJS SDK is ready!");
+            Dictionary<string, object> user = Wavedash.SDK.GetUser();
+            if (user != null)
+            {
+                Debug.Log($"User data retrieved: {JsonConvert.SerializeObject(user)}");
+            }
+            else
+            {
+                Debug.Log("No user data available");
+            }
+        }
+        
     }
 
     void OnDestroy()
     {
         // Unsubscribe from events when the GameObject is destroyed
         Wavedash.SDK.OnLobbyJoined -= HandleLobbyJoined;
-        Wavedash.SDK.OnReady -= HandleWavedashReady;
+        Wavedash.SDK.OnLobbyLeft -= HandleLobbyLeft;
     }
 
     void HandleLobbyJoined(Dictionary<string, object> lobbyData)
@@ -40,17 +56,12 @@ public class WavedashExample : MonoBehaviour
         Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 
-    void HandleWavedashReady()
+    void HandleLobbyLeft(Dictionary<string, object> lobbyData)
     {
-        Debug.Log("WavedashJS SDK is ready!");
-        Dictionary<string, object> user = Wavedash.SDK.GetUser();
-        if (user != null)
-        {
-            Debug.Log($"User data retrieved: {JsonConvert.SerializeObject(user)}");
-        }
-        else
-        {
-            Debug.Log("No user data available");
-        }
+        string lobbyId = lobbyData["id"].ToString();
+        string lobbyName = lobbyData["name"].ToString();
+        Debug.Log($"Left lobby: {lobbyId}");
+        Debug.Log($"Lobby name: {lobbyName}");
+        Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 } 

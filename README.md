@@ -41,15 +41,21 @@ if (Wavedash.SDK.IsReady()) {
 // Subscribe to events
 void Start()
 {
+  // Events can be subscribed to before or after initialization
+  Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
+
   // Simple global call
   Wavedash.SDK.Init(new Dictionary<string, object>
   {
       { "gameId", "hello-world" },
       { "debug", true }
   });
-  
-  // Subscribe to events after initialization
-  Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
+
+  // Init is synchronous, SDK should be ready immediately
+  if (Wavedash.SDK.IsReady()) {
+    var user = Wavedash.SDK.GetUser();
+    Debug.Log($"User: {user}");
+}
 }
 
 // Remove the callback on destroy to ensure proper cleanup when your component is destroyed

@@ -13,12 +13,12 @@ namespace Wavedash
     public static class SDK
     {
         // Events that JavaScript can trigger
-        public static event Action OnReady;
         public static event Action<Dictionary<string, object>> OnLobbyJoined;
         public static event Action<Dictionary<string, object>> OnLobbyLeft;
         
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
+        private static bool _debug = false;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
@@ -42,6 +42,8 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             // Ensure callback receiver exists
             EnsureCallbackReceiver();
+            // Set debug mode
+            _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
 
             // Register Unity callbacks with JavaScript
             WavedashJS_RegisterUnityCallbacks(_callbackReceiver.gameObject.name);
@@ -108,7 +110,10 @@ namespace Wavedash
             // Called by JavaScript via SendMessage
             public void OnLobbyJoinedCallback(string dataJson)
             {
-                Debug.Log("OnLobbyJoinedCallback triggered with: " + dataJson);
+                if (_debug)
+                {
+                    Debug.Log("OnLobbyJoinedCallback triggered with: " + dataJson);
+                }
                 try
                 {
                     var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
@@ -122,6 +127,10 @@ namespace Wavedash
 
             public void OnLobbyLeftCallback(string dataJson)
             {
+                if (_debug)
+                {
+                    Debug.Log("OnLobbyLeftCallback triggered with: " + dataJson);
+                }
                 try
                 {
                     var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
@@ -131,11 +140,6 @@ namespace Wavedash
                 {
                     Debug.LogError($"Failed to parse lobby left data: {e.Message}");
                 }
-            }
-
-            public void OnReadyCallback()
-            {
-                OnReady?.Invoke();
             }
         }
     }
