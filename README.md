@@ -39,11 +39,15 @@ if (Wavedash.SDK.IsReady()) {
 ### Handle Backend Events
 ```csharp
 // Subscribe to events
-void Start()
+void Awake()
 {
   // Events can be subscribed to before or after initialization
   Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
+}
 
+// Initialize SDK and get the current user
+void Start()
+{
   // Simple global call
   Wavedash.SDK.Init(new Dictionary<string, object>
   {
@@ -55,7 +59,7 @@ void Start()
   if (Wavedash.SDK.IsReady()) {
     var user = Wavedash.SDK.GetUser();
     Debug.Log($"User: {user}");
-}
+  }
 }
 
 // Remove the callback on destroy to ensure proper cleanup when your component is destroyed
