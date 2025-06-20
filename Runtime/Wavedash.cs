@@ -15,6 +15,7 @@ namespace Wavedash
         // Events that JavaScript can trigger
         public static event Action<Dictionary<string, object>> OnLobbyJoined;
         public static event Action<Dictionary<string, object>> OnLobbyLeft;
+        public static event Action<Dictionary<string, object>> OnLobbyMessage;
         
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -139,6 +140,23 @@ namespace Wavedash
                 catch (Exception e)
                 {
                     Debug.LogError($"Failed to parse lobby left data: {e.Message}");
+                }
+            }
+
+            public void OnLobbyMessageCallback(string dataJson)
+            {
+                if (_debug)
+                {
+                    Debug.Log("OnLobbyMessageCallback triggered with: " + dataJson);
+                }
+                try
+                {
+                    var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
+                    OnLobbyMessage?.Invoke(data);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to parse lobby message data: {e.Message}");
                 }
             }
         }

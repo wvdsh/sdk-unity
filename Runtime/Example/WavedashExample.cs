@@ -50,18 +50,14 @@ public class WavedashExample : MonoBehaviour
     void HandleLobbyJoined(Dictionary<string, object> lobbyData)
     {
         string lobbyId = lobbyData["id"].ToString();
-        string lobbyName = lobbyData["name"].ToString();
         Debug.Log($"Joined lobby: {lobbyId}");
-        Debug.Log($"Lobby name: {lobbyName}");
         Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 
     void HandleLobbyLeft(Dictionary<string, object> lobbyData)
     {
         string lobbyId = lobbyData["id"].ToString();
-        string lobbyName = lobbyData["name"].ToString();
         Debug.Log($"Left lobby: {lobbyId}");
-        Debug.Log($"Lobby name: {lobbyName}");
         Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 } 
