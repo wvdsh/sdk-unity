@@ -28,9 +28,8 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' && 
         window.WavedashJS && 
         typeof window.WavedashJS.getUser === 'function') {
-      var user = window.WavedashJS.getUser();
-      if (user) {
-        var userJson = JSON.stringify(user);
+      var userJson = window.WavedashJS.getUser();
+      if (userJson) {
         var bufferSize = lengthBytesUTF8(userJson) + 1;
         var buffer = _malloc(bufferSize);
         stringToUTF8(userJson, buffer, bufferSize);
