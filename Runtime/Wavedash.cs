@@ -267,8 +267,6 @@ namespace Wavedash
                     Debug.LogError($"Failed to parse lobby message data: {e.Message}");
                 }
             }
-
-            // You can delete OnLeaderboardCallback here if you’ve fully migrated to pointer-based callbacks.
         }
     }
 }
