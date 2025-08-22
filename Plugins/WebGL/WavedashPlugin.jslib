@@ -39,33 +39,49 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
-  WavedashJS_GetLeaderboard: function (leaderboardNamePtr, sortMethod, displayType, gameObjectNamePtr, methodNamePtr, requestIdPtr) {
-    var lbName    = UTF8ToString(leaderboardNamePtr);
-    var goName    = UTF8ToString(gameObjectNamePtr);
-    var method    = UTF8ToString(methodNamePtr);
+  WavedashJS_GetOrCreateLeaderboard: function (leaderboardNamePtr, sortMethod, displayType, callbackPtr, requestIdPtr) {
+    var lbName = UTF8ToString(leaderboardNamePtr);
     var requestId = UTF8ToString(requestIdPtr);
-  
-    if (!window.WavedashJS || typeof window.WavedashJS.getOrCreateLeaderboard !== 'function') {
-      console.error('WavedashJS.getOrCreateLeaderboard not available');
-      return;
+
+    // helper defined right here, visible in this scope
+    function getWasmFunction(ptr) {
+      // Unity 2022+ / 6.x (Emscripten 3.x)
+      if (Module && Module["wasmTable"]) {
+        return Module["wasmTable"].get(ptr);
+      }
+      // Sometimes wasmTable is exposed as a global
+      if (typeof wasmTable !== "undefined") {
+        return wasmTable.get(ptr);
+      }
+      // Unity 2021.3 (Emscripten 2.x) still has dynCall helpers
+      if (typeof dynCall_vi !== "undefined") {
+        return function (arg) {
+          dynCall_vi(ptr, arg);
+        };
+      }
+      throw new Error("Cannot resolve wasm function pointer");
     }
-  
+
+    var cb = getWasmFunction(callbackPtr);
+
     window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType)
       .then(function (response) {
-        var parsed = (typeof response === "string") ? JSON.parse(response) : response;
-
-        var payload = { requestId: requestId, response: parsed };
+        var payload = { requestId: requestId, response: response };
         var json = JSON.stringify(payload);
-        (typeof SendMessage === 'function'
-          ? SendMessage
-          : unityInstance.SendMessage)(goName, method, json);
+        var size = lengthBytesUTF8(json) + 1;
+        var buffer = _malloc(size);
+        stringToUTF8(json, buffer, size);
+        cb(buffer);
+        _free(buffer);
       })
       .catch(function (err) {
         var payload = { requestId: requestId, error: String(err) };
         var json = JSON.stringify(payload);
-        (typeof SendMessage === 'function'
-          ? SendMessage
-          : unityInstance.SendMessage)(goName, method, json);
+        var size = lengthBytesUTF8(json) + 1;
+        var buffer = _malloc(size);
+        stringToUTF8(json, buffer, size);
+        cb(buffer);
+        _free(buffer);
       });
   },
   
