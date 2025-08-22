@@ -8,7 +8,7 @@ namespace Wavedash
 {
     /// <summary>
     /// Main entry point for the Wavedash SDK
-    /// Usage: Wavedash.Init(config); GetUser(); GetLeaderboard("highscores").Then(...);
+    /// Usage: Wavedash.Init(config); GetUser(); etc.;
     /// </summary>
     public static class SDK
     {
@@ -220,6 +220,7 @@ namespace Wavedash
         /// </summary>
         private class WavedashCallbackReceiver : MonoBehaviour
         {
+            // Called by JavaScript via SendMessage
             public void OnLobbyJoinedCallback(string dataJson)
             {
                 if (_debug)
