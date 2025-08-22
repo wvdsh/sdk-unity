@@ -56,8 +56,6 @@ mergeInto(LibraryManager.library, {
 
         var payload = { requestId: requestId, response: parsed };
         var json = JSON.stringify(payload);
-        console.log("WavedashJS_GetLeaderboard JSON: " + json);
-
         (typeof SendMessage === 'function'
           ? SendMessage
           : unityInstance.SendMessage)(goName, method, json);
