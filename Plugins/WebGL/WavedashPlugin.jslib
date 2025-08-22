@@ -38,6 +38,39 @@ mergeInto(LibraryManager.library, {
     }
     return 0;
   },
+
+  WavedashJS_GetLeaderboard: function (leaderboardNamePtr, sortMethod, displayType, gameObjectNamePtr, methodNamePtr, requestIdPtr) {
+    var lbName    = UTF8ToString(leaderboardNamePtr);
+    var goName    = UTF8ToString(gameObjectNamePtr);
+    var method    = UTF8ToString(methodNamePtr);
+    var requestId = UTF8ToString(requestIdPtr);
+  
+    if (!window.WavedashJS || typeof window.WavedashJS.getOrCreateLeaderboard !== 'function') {
+      console.error('WavedashJS.getOrCreateLeaderboard not available');
+      return;
+    }
+  
+    window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType)
+      .then(function (response) {
+        var parsed = (typeof response === "string") ? JSON.parse(response) : response;
+
+        var payload = { requestId: requestId, response: parsed };
+        var json = JSON.stringify(payload);
+        console.log("WavedashJS_GetLeaderboard JSON: " + json);
+
+        (typeof SendMessage === 'function'
+          ? SendMessage
+          : unityInstance.SendMessage)(goName, method, json);
+      })
+      .catch(function (err) {
+        var payload = { requestId: requestId, error: String(err) };
+        var json = JSON.stringify(payload);
+        (typeof SendMessage === 'function'
+          ? SendMessage
+          : unityInstance.SendMessage)(goName, method, json);
+      });
+  },
+  
   // JS -> Unity callbacks
   WavedashJS_RegisterUnityCallbacks: function (gameObjectNamePtr) {
     var gameObjectName = UTF8ToString(gameObjectNamePtr);
