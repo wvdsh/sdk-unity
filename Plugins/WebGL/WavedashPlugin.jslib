@@ -47,7 +47,7 @@ mergeInto(LibraryManager.library, {
         window.WavedashJS &&
         typeof window.WavedashJS.getUser === 'function') {
       var userJson = window.WavedashJS.getUser();
-      if (userJson) return AllocUTF8(userJson); // uses helper
+      if (userJson) return AllocUTF8(userJson);
     }
     return 0;
   },
