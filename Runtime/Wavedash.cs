@@ -22,11 +22,11 @@ namespace Wavedash
         private static bool _debug = false;
 
         // Pending callbacks by requestId
-        internal static readonly Dictionary<string, Action<Dictionary<string, object>>> _pendingCallbacks = new();
+        internal static readonly Dictionary<string, Action<object>> _pendingCallbacks = new();
 
         // jslib -> Unity callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void LeaderboardCallback(IntPtr responseJson);
+        public delegate void LeaderboardCallback(string responseJson);
         private static LeaderboardCallback _lbCallback; // keep alive
 
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -38,9 +38,6 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
-
-        [DllImport("__Internal")]
-        private static extern void WavedashJS_RegisterUnityCallbacks(string gameObjectName);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_GetOrCreateLeaderboard(
@@ -61,9 +58,6 @@ namespace Wavedash
             EnsureCallbackReceiver();
             // Set debug mode
             _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
-
-            // Register Unity callbacks with JavaScript
-            WavedashJS_RegisterUnityCallbacks(_callbackReceiver.gameObject.name);
 
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
@@ -140,13 +134,11 @@ namespace Wavedash
         /// IL2CPP-safe static callback for leaderboard responses
         /// </summary>
         [AOT.MonoPInvokeCallback(typeof(LeaderboardCallback))]
-        private static void LeaderboardCallbackImpl(IntPtr responseJson)
+       private static void LeaderboardCallbackImpl(string responseJson)
         {
-            string json = Marshal.PtrToStringUTF8(responseJson);
-
             try
             {
-                var root = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                var root = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseJson);
 
                 if (root != null &&
                     root.TryGetValue("requestId", out var reqObj) &&
@@ -155,14 +147,21 @@ namespace Wavedash
                 {
                     _pendingCallbacks.Remove(reqId);
 
-                    if (root.TryGetValue("error", out var err))
+                    bool success = root.TryGetValue("success", out var successObj) &&
+                                successObj is bool b && b;
+
+                    if (!success)
                     {
-                        cb?.Invoke(new Dictionary<string, object> { { "error", err } });
+                        Debug.LogWarning($"Leaderboard request {reqId} failed: {root["message"]}");
                     }
-                    else if (root.TryGetValue("response", out var respObj))
+
+                    if (root.TryGetValue("data", out var dataObj))
                     {
-                        var respDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(respObj.ToString());
-                        cb?.Invoke(respDict);
+                        cb?.Invoke(dataObj);
+                    }
+                    else
+                    {
+                        cb?.Invoke(null);
                     }
                 }
             }
@@ -171,6 +170,7 @@ namespace Wavedash
                 Debug.LogError($"Failed to parse leaderboard data: {e.Message}");
             }
         }
+
 
         /// <summary>
         /// Ensures the callback receiver GameObject exists
@@ -197,7 +197,7 @@ namespace Wavedash
                 _requestId = requestId;
             }
 
-            public LeaderboardRequest Then(Action<Dictionary<string, object>> continuation)
+            public LeaderboardRequest Then(Action<object> continuation)
             {
                 if (_pendingCallbacks.TryGetValue(_requestId, out var existing))
                 {
