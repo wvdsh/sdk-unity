@@ -57,34 +57,36 @@ mergeInto(LibraryManager.library, {
     var lbName = UTF8ToString(leaderboardNamePtr);
     var requestId = UTF8ToString(requestIdPtr);
 
-    var cb = __getWasmFunction(callbackPtr); // uses helper
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = {
+      name: lbName,
+      sortOrder: sortMethod,
+      displayType: displayType
+    };
+
+    function sendResponse(success, data, message) {
+      var json = JSON.stringify({
+        requestId: requestId,
+        success: success,
+        data: data,
+        args: args,
+        message: message || ""
+      });
+      var buf = AllocUTF8(json);
+      cb(buf);
+      _free(buf);
+    }
 
     var p = (window.WavedashJS && window.WavedashJS.getOrCreateLeaderboard)
       ? window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType)
       : Promise.reject("WavedashJS.getOrCreateLeaderboard not available");
 
     p.then(function (response) {
-        var json = JSON.stringify({ requestId: requestId, response: response });
-        var buf = AllocUTF8(json);
-        cb(buf);
-        _free(buf);
+        sendResponse(true, response, "");
       })
-     .catch(function (err) {
-        var json = JSON.stringify({ requestId: requestId, error: String(err) });
-        var buf = AllocUTF8(json);
-        cb(buf);
-        _free(buf);
+    .catch(function (err) {
+        sendResponse(false, null, String(err));
       });
-  },
-
-  WavedashJS_RegisterUnityCallbacks: function (gameObjectNamePtr) {
-    var name = UTF8ToString(gameObjectNamePtr);
-    if (typeof window !== 'undefined' && window.WavedashJS) {
-      if (typeof window.WavedashJS.registerUnityCallbackReceiver === 'function') {
-        window.WavedashJS.registerUnityCallbackReceiver(name);
-      } else {
-        console.warn("[Unity] WavedashJS.registerUnityCallbackReceiver not found.");
-      }
-    }
   }
 });
