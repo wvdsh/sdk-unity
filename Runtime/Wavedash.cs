@@ -55,6 +55,9 @@ namespace Wavedash
         public static void Init(Dictionary<string, object> config)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
+            // Ensure callback receiver exists
+            EnsureCallbackReceiver();
+
             // Set debug mode
             _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
 
@@ -215,6 +218,19 @@ namespace Wavedash
                     _pendingCallbacks[_requestId] = continuation;
                 }
                 return this;
+            }
+        }
+
+        /// <summary>
+        /// Ensures the callback receiver GameObject exists
+        /// </summary>
+        private static void EnsureCallbackReceiver()
+        {
+            if (_callbackReceiver == null)
+            {
+                GameObject go = new GameObject("WavedashCallbackReceiver");
+                _callbackReceiver = go.AddComponent<WavedashCallbackReceiver>();
+                UnityEngine.Object.DontDestroyOnLoad(go);
             }
         }
 
