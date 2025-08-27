@@ -98,7 +98,7 @@ namespace Wavedash
 #endif
             return null;
         }
-        
+
         /// <summary>
         /// Request leaderboard data
         /// </summary>
@@ -187,8 +187,6 @@ namespace Wavedash
                 Debug.LogError($"Failed to parse leaderboard data: {e.Message}");
             }
         }
-
-
 
         /// <summary>
         /// Request handle that supports .Then() chaining.
