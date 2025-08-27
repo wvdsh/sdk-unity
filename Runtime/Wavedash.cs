@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json;
 using System;
+using Newtonsoft.Json.Linq;
 
 namespace Wavedash
 {
@@ -54,8 +55,6 @@ namespace Wavedash
         public static void Init(Dictionary<string, object> config)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            // Ensure callback receiver exists
-            EnsureCallbackReceiver();
             // Set debug mode
             _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
 
@@ -99,7 +98,7 @@ namespace Wavedash
 #endif
             return null;
         }
-
+        
         /// <summary>
         /// Request leaderboard data
         /// </summary>
@@ -131,39 +130,57 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// IL2CPP-safe static callback for leaderboard responses
+        /// Request leaderboard data
         /// </summary>
         [AOT.MonoPInvokeCallback(typeof(LeaderboardCallback))]
-       private static void LeaderboardCallbackImpl(string responseJson)
+        private static void LeaderboardCallbackImpl(string responseJson)
         {
             try
             {
-                var root = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseJson);
-
-                if (root != null &&
-                    root.TryGetValue("requestId", out var reqObj) &&
-                    reqObj is string reqId &&
-                    _pendingCallbacks.TryGetValue(reqId, out var cb))
+                if (string.IsNullOrEmpty(responseJson))
                 {
-                    _pendingCallbacks.Remove(reqId);
-
-                    bool success = root.TryGetValue("success", out var successObj) &&
-                                successObj is bool b && b;
-
-                    if (!success)
-                    {
-                        Debug.LogWarning($"Leaderboard request {reqId} failed: {root["message"]}");
-                    }
-
-                    if (root.TryGetValue("data", out var dataObj))
-                    {
-                        cb?.Invoke(dataObj);
-                    }
-                    else
-                    {
-                        cb?.Invoke(null);
-                    }
+                    Debug.LogError("Leaderboard callback received empty JSON.");
+                    return;
                 }
+
+                var root = JObject.Parse(responseJson);
+
+                // Must have requestId
+                var reqId = root.Value<string>("requestId");
+                if (string.IsNullOrEmpty(reqId))
+                {
+                    Debug.LogError("Leaderboard response missing 'requestId'.");
+                    return;
+                }
+
+                // Must have callback
+                if (!_pendingCallbacks.TryGetValue(reqId, out var cb))
+                {
+                    Debug.LogWarning($"No pending callback for requestId {reqId}");
+                    return;
+                }
+                _pendingCallbacks.Remove(reqId);
+
+                // Must have response string
+                var respToken = root["response"];
+                if (respToken?.Type != JTokenType.String)
+                {
+                    Debug.LogError($"Leaderboard response {reqId} missing or invalid 'response' field.");
+                    cb?.Invoke(null);
+                    return;
+                }
+
+                var resp = JObject.Parse(respToken.Value<string>());
+
+                // Check success
+                if (!(resp.Value<bool?>("success") ?? false))
+                {
+                    Debug.LogWarning($"Leaderboard request {reqId} failed: {resp.Value<string>("message")}");
+                }
+
+                // Invoke callback with data
+                var dataObj = resp["data"] as JObject;
+                cb?.Invoke(dataObj?.ToObject<Dictionary<string, object>>());
             }
             catch (Exception e)
             {
@@ -172,18 +189,6 @@ namespace Wavedash
         }
 
 
-        /// <summary>
-        /// Ensures the callback receiver GameObject exists
-        /// </summary>
-        private static void EnsureCallbackReceiver()
-        {
-            if (_callbackReceiver == null)
-            {
-                GameObject go = new GameObject("WavedashCallbackReceiver");
-                _callbackReceiver = go.AddComponent<WavedashCallbackReceiver>();
-                UnityEngine.Object.DontDestroyOnLoad(go);
-            }
-        }
 
         /// <summary>
         /// Request handle that supports .Then() chaining.

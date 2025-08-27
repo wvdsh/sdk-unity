@@ -65,14 +65,12 @@ mergeInto(LibraryManager.library, {
       displayType: displayType
     };
 
-    function sendResponse(success, data, message) {
+    function sendResponse(responseObj) {
       var json = JSON.stringify({
         requestId: requestId,
-        success: success,
-        data: data,
-        args: args,
-        message: message || ""
+        response: responseObj
       });
+
       var buf = AllocUTF8(json);
       cb(buf);
       _free(buf);
@@ -83,10 +81,17 @@ mergeInto(LibraryManager.library, {
       : Promise.reject("WavedashJS.getOrCreateLeaderboard not available");
 
     p.then(function (response) {
-        sendResponse(true, response, "");
-      })
+      sendResponse(response);
+    })
     .catch(function (err) {
-        sendResponse(false, null, String(err));
-      });
+      var failedResponse = {
+        success: false,
+        data: null,
+        args: args,
+        message: String(err)
+      };
+      sendResponse(failedResponse);
+    });
   }
+
 });
