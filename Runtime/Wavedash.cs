@@ -174,19 +174,19 @@ namespace Wavedash
                 }
 
                 var resp = (JObject)respToken;
-                var failure = !resp.Value<bool>("success");
+                var success = resp.Value<bool>("success");
 
                 // Check success
-                if (failure)
+                if (!success)
                 {
                     var message = resp.Value<string>("message");
                     Debug.LogWarning($"Leaderboard request {reqId} failed: {message}");
-                    cb?.Invoke(null, failure);
+                    cb?.Invoke(null, success);
                     return;
                 }
 
                 var dataToken = resp["data"];
-                cb?.Invoke(dataToken.ToObject<Dictionary<string, object>>(), failure);
+                cb?.Invoke(dataToken.ToObject<Dictionary<string, object>>(), success);
             }
             catch (Exception e)
             {
