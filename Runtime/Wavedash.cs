@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json;
 using System;
+using Newtonsoft.Json.Linq;
 
 namespace Wavedash
 {
     /// <summary>
     /// Main entry point for the Wavedash SDK
-    /// Usage: Wavedash.SDK.Init(config); Wavedash.SDK.GetUser(); etc.
+    /// Usage: Wavedash.Init(config); GetUser(); etc.;
     /// </summary>
     public static class SDK
     {
@@ -16,23 +17,36 @@ namespace Wavedash
         public static event Action<Dictionary<string, object>> OnLobbyJoined;
         public static event Action<Dictionary<string, object>> OnLobbyLeft;
         public static event Action<Dictionary<string, object>> OnLobbyMessage;
-        
+
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
         private static bool _debug = false;
 
+        // Pending callbacks by requestId
+        internal static readonly Dictionary<string, Action<Dictionary<string, object>?, bool>> _pendingCallbacks = new();
+
+        // jslib -> Unity callbacks
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void LeaderboardCallback(string responseJson);
+        private static LeaderboardCallback _lbCallback; // keep alive
+
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern void WavedashJS_Init(string configJson);
-        
+
         [DllImport("__Internal")]
         private static extern int WavedashJS_IsReady();
-        
+
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
-        
+
         [DllImport("__Internal")]
-        private static extern void WavedashJS_RegisterUnityCallbacks(string gameObjectName);
+        private static extern void WavedashJS_GetOrCreateLeaderboard(
+            string leaderboardName,
+            int sortMethod,
+            int displayType,
+            IntPtr callbackPtr,
+            string requestId);
 #endif
 
         /// <summary>
@@ -43,16 +57,14 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             // Ensure callback receiver exists
             EnsureCallbackReceiver();
+
             // Set debug mode
             _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
 
-            // Register Unity callbacks with JavaScript
-            WavedashJS_RegisterUnityCallbacks(_callbackReceiver.gameObject.name);
-            
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
 #else
-            Debug.LogWarning("Wavedash.SDK.Init() is only supported in WebGL builds");
+            Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
 #endif
         }
 
@@ -91,6 +103,128 @@ namespace Wavedash
         }
 
         /// <summary>
+        /// Request leaderboard data
+        /// </summary>
+        public static LeaderboardRequest GetOrCreateLeaderboard(string leaderboardName, int sortMethod, int displayType)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+
+            // Reserve slot in pending callbacks
+            _pendingCallbacks[requestId] = null;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_lbCallback == null)
+            {
+                _lbCallback = LeaderboardCallbackImpl; // assign once
+            }
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_lbCallback);
+
+            WavedashJS_GetOrCreateLeaderboard(
+                leaderboardName,
+                sortMethod,
+                displayType,
+                fnPtr,
+                requestId
+            );
+#endif
+
+            return new LeaderboardRequest(requestId);
+        }
+
+        /// <summary>
+        /// Request leaderboard data
+        /// </summary>
+        [AOT.MonoPInvokeCallback(typeof(LeaderboardCallback))]
+        private static void LeaderboardCallbackImpl(string responseJson)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(responseJson))
+                {
+                    Debug.LogError("Leaderboard callback received empty JSON.");
+                    return;
+                }
+
+                var root = JObject.Parse(responseJson);
+
+                // Must have requestId
+                var reqId = root.Value<string>("requestId");
+                if (string.IsNullOrEmpty(reqId))
+                {
+                    Debug.LogError("Leaderboard response missing 'requestId'.");
+                    return;
+                }
+
+                // Must have callback
+                if (!_pendingCallbacks.TryGetValue(reqId, out var cb))
+                {
+                    Debug.LogWarning($"No pending callback for requestId {reqId}");
+                    return;
+                }
+                _pendingCallbacks.Remove(reqId);
+
+                // Must have response string
+                var respToken = root["response"];
+                if (respToken == null || respToken.Type != JTokenType.Object)
+                {
+                    Debug.LogError($"Leaderboard response {reqId} missing or invalid 'response' field.");
+                    cb?.Invoke(null, true);
+                    return;
+                }
+
+                var resp = (JObject)respToken;
+                var success = resp.Value<bool>("success");
+
+                // Check success
+                if (!success)
+                {
+                    var message = resp.Value<string>("message");
+                    Debug.LogWarning($"Leaderboard request {reqId} failed: {message}");
+                    cb?.Invoke(null, success);
+                    return;
+                }
+
+                var dataToken = resp["data"];
+                cb?.Invoke(dataToken.ToObject<Dictionary<string, object>>(), success);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to parse leaderboard data: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Request handle that supports .Then() chaining.
+        /// </summary>
+        public class LeaderboardRequest
+        {
+            private readonly string _requestId;
+
+            internal LeaderboardRequest(string requestId)
+            {
+                _requestId = requestId;
+            }
+
+            public LeaderboardRequest Then(Action<Dictionary<string, object>?, bool> continuation)
+            {
+                if (_pendingCallbacks.TryGetValue(_requestId, out var existing))
+                {
+                    _pendingCallbacks[_requestId] = (data, success) =>
+                    {
+                        existing?.Invoke(data, success);
+                        continuation?.Invoke(data, success);
+                    };
+                }
+                else
+                {
+                    _pendingCallbacks[_requestId] = continuation;
+                }
+                return this;
+            }
+        }
+
+        /// <summary>
         /// Ensures the callback receiver GameObject exists
         /// </summary>
         private static void EnsureCallbackReceiver()
@@ -104,7 +238,7 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Internal class to receive callbacks from JavaScript
+        /// Internal class to receive other callbacks from JavaScript
         /// </summary>
         private class WavedashCallbackReceiver : MonoBehaviour
         {
@@ -112,9 +246,8 @@ namespace Wavedash
             public void OnLobbyJoinedCallback(string dataJson)
             {
                 if (_debug)
-                {
                     Debug.Log("OnLobbyJoinedCallback triggered with: " + dataJson);
-                }
+
                 try
                 {
                     var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
@@ -129,9 +262,8 @@ namespace Wavedash
             public void OnLobbyLeftCallback(string dataJson)
             {
                 if (_debug)
-                {
                     Debug.Log("OnLobbyLeftCallback triggered with: " + dataJson);
-                }
+
                 try
                 {
                     var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
@@ -146,9 +278,8 @@ namespace Wavedash
             public void OnLobbyMessageCallback(string dataJson)
             {
                 if (_debug)
-                {
                     Debug.Log("OnLobbyMessageCallback triggered with: " + dataJson);
-                }
+
                 try
                 {
                     var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
@@ -161,4 +292,4 @@ namespace Wavedash
             }
         }
     }
-}  
+}
