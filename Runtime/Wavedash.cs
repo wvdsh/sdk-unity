@@ -210,10 +210,10 @@ namespace Wavedash
             {
                 if (_pendingCallbacks.TryGetValue(_requestId, out var existing))
                 {
-                    _pendingCallbacks[_requestId] = (data, failure) =>
+                    _pendingCallbacks[_requestId] = (data, success) =>
                     {
-                        existing?.Invoke(data, failure);
-                        continuation?.Invoke(data, failure);
+                        existing?.Invoke(data, success);
+                        continuation?.Invoke(data, success);
                     };
                 }
                 else
