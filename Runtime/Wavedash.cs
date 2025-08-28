@@ -23,7 +23,7 @@ namespace Wavedash
         private static bool _debug = false;
 
         // Pending callbacks by requestId
-        internal static readonly Dictionary<string, Action<object>> _pendingCallbacks = new();
+        internal static readonly Dictionary<string, Action<Dictionary<string, object>?, bool>> _pendingCallbacks = new();
 
         // jslib -> Unity callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -166,24 +166,27 @@ namespace Wavedash
 
                 // Must have response string
                 var respToken = root["response"];
-                if (respToken?.Type != JTokenType.String)
+                if (respToken == null || respToken.Type != JTokenType.Object)
                 {
                     Debug.LogError($"Leaderboard response {reqId} missing or invalid 'response' field.");
-                    cb?.Invoke(null);
+                    cb?.Invoke(null, true);
                     return;
                 }
 
-                var resp = JObject.Parse(respToken.Value<string>());
+                var resp = (JObject)respToken;
+                var failure = !resp.Value<bool>("success");
 
                 // Check success
-                if (!(resp.Value<bool?>("success") ?? false))
+                if (failure)
                 {
-                    Debug.LogWarning($"Leaderboard request {reqId} failed: {resp.Value<string>("message")}");
+                    var message = resp.Value<string>("message");
+                    Debug.LogWarning($"Leaderboard request {reqId} failed: {message}");
+                    cb?.Invoke(null, failure);
+                    return;
                 }
 
-                // Invoke callback with data
-                var dataObj = resp["data"] as JObject;
-                cb?.Invoke(dataObj?.ToObject<Dictionary<string, object>>());
+                var dataToken = resp["data"];
+                cb?.Invoke(dataToken.ToObject<Dictionary<string, object>>(), failure);
             }
             catch (Exception e)
             {
@@ -203,14 +206,14 @@ namespace Wavedash
                 _requestId = requestId;
             }
 
-            public LeaderboardRequest Then(Action<object> continuation)
+            public LeaderboardRequest Then(Action<Dictionary<string, object>?, bool> continuation)
             {
                 if (_pendingCallbacks.TryGetValue(_requestId, out var existing))
                 {
-                    _pendingCallbacks[_requestId] = data =>
+                    _pendingCallbacks[_requestId] = (data, failure) =>
                     {
-                        existing?.Invoke(data);
-                        continuation?.Invoke(data);
+                        existing?.Invoke(data, failure);
+                        continuation?.Invoke(data, failure);
                     };
                 }
                 else

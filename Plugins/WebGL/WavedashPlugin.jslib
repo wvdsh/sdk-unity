@@ -46,8 +46,10 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.getUser === 'function') {
-      var userJson = window.WavedashJS.getUser();
-      if (userJson) return AllocUTF8(userJson);
+      var userObj = window.WavedashJS.getUser();
+      if (userObj) {
+        return AllocUTF8(JSON.stringify(userObj));
+      }
     }
     return 0;
   },
