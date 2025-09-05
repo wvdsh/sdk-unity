@@ -47,6 +47,12 @@ namespace Wavedash
             int displayType,
             IntPtr callbackPtr,
             string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_GetLeaderboard(
+            string leaderboardName,
+            IntPtr callbackPtr,
+            string requestId);
 #endif
 
         /// <summary>
@@ -103,7 +109,7 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Request leaderboard data
+        /// Request leaderboard data if it exists, or create it if it doesn't
         /// </summary>
         public static LeaderboardRequest GetOrCreateLeaderboard(string leaderboardName, int sortMethod, int displayType)
         {
@@ -124,6 +130,31 @@ namespace Wavedash
                 leaderboardName,
                 sortMethod,
                 displayType,
+                fnPtr,
+                requestId
+            );
+#endif
+
+            return new LeaderboardRequest(requestId);
+        }
+
+        /// <summary>
+        /// Request leaderboard data
+        /// </summary>
+        public static LeaderboardRequest GetLeaderboard(string leaderboardName)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+        
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_lbCallback == null)
+            {
+                _lbCallback = LeaderboardCallbackImpl; // assign once
+            }
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_lbCallback);
+
+            WavedashJS_GetLeaderboard(
+                leaderboardName,
                 fnPtr,
                 requestId
             );

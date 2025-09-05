@@ -1,4 +1,37 @@
 mergeInto(LibraryManager.library, {
+  // === Shared helpers to reduce duplication ===
+  $WVD_Helpers__deps: ['$__getWasmFunction', '$AllocUTF8'],
+  $WVD_Helpers: {
+    send: function (cb, requestId, responseObj) {
+      var json = JSON.stringify({ requestId: requestId, response: responseObj });
+      var buf = AllocUTF8(json);
+      cb(buf);
+      _free(buf);
+    },
+    run: function (getPromise, cb, requestId, args) {
+      var p;
+      try {
+        p = getPromise();
+      } catch (e) {
+        return WVD_Helpers.send(cb, requestId, {
+          success: false,
+          data: null,
+          args: args,
+          message: String(e)
+        });
+      }
+      p.then(function (resp) {
+        WVD_Helpers.send(cb, requestId, resp);
+      }).catch(function (err) {
+        WVD_Helpers.send(cb, requestId, {
+          success: false,
+          data: null,
+          args: args,
+          message: String(err)
+        });
+      });
+    }
+  },
   // === Helpers (JS library variables) ===
   // Define with $Name; call as Name(...) at runtime.
   $__getWasmFunction: function (ptr) {
@@ -54,46 +87,48 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
-  WavedashJS_GetOrCreateLeaderboard__deps: ['$__getWasmFunction', '$AllocUTF8'],
+  WavedashJS_GetLeaderboard__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetLeaderboard: function (leaderboardNamePtr, callbackPtr, requestIdPtr) {
+    var lbName = UTF8ToString(leaderboardNamePtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { name: lbName };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getLeaderboard) {
+          return Promise.reject('WavedashJS.getLeaderboard not available');
+        }
+        return window.WavedashJS.getLeaderboard(lbName);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_GetOrCreateLeaderboard__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_GetOrCreateLeaderboard: function (leaderboardNamePtr, sortMethod, displayType, callbackPtr, requestIdPtr) {
     var lbName = UTF8ToString(leaderboardNamePtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = {
-      name: lbName,
-      sortOrder: sortMethod,
-      displayType: displayType
-    };
+    var args = { name: lbName, sortOrder: sortMethod, displayType: displayType };
 
-    function sendResponse(responseObj) {
-      var json = JSON.stringify({
-        requestId: requestId,
-        response: responseObj
-      });
-
-      var buf = AllocUTF8(json);
-      cb(buf);
-      _free(buf);
-    }
-
-    var p = (window.WavedashJS && window.WavedashJS.getOrCreateLeaderboard)
-      ? window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType)
-      : Promise.reject("WavedashJS.getOrCreateLeaderboard not available");
-
-    p.then(function (response) {
-      sendResponse(response);
-    })
-    .catch(function (err) {
-      var failedResponse = {
-        success: false,
-        data: null,
-        args: args,
-        message: String(err)
-      };
-      sendResponse(failedResponse);
-    });
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getOrCreateLeaderboard) {
+          return Promise.reject('WavedashJS.getOrCreateLeaderboard not available');
+        }
+        return window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType);
+      },
+      cb,
+      requestId,
+      args
+    );
   }
 
 });
