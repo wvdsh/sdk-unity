@@ -1,6 +1,6 @@
 mergeInto(LibraryManager.library, {
   // === Shared helpers to reduce duplication ===
-  $WVD_Helpers__deps: ['$__getWasmFunction', '$AllocUTF8'],
+  $WVD_Helpers__deps: ['$AllocUTF8'],
   $WVD_Helpers: {
     send: function (cb, requestId, responseObj) {
       var json = JSON.stringify({ requestId: requestId, response: responseObj });
