@@ -54,6 +54,21 @@ namespace Wavedash
             string leaderboardName,
             IntPtr callbackPtr,
             string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_GetMyLeaderboardEntries(
+            string leaderboardId,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_UploadLeaderboardScore(
+            string leaderboardId,
+            int score,
+            bool keepBest,
+            string ugcId,
+            IntPtr callbackPtr,
+            string requestId);
 #endif
 
         /// <summary>
@@ -131,7 +146,7 @@ namespace Wavedash
                 requestId
             );
 #else
-            tcs.SetResult(new Dictionary<string, object> { { "dummy", "editor" } });
+            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
 #endif
 
             return tcs.Task;
@@ -158,7 +173,66 @@ namespace Wavedash
                 requestId
             );
 #else
-            tcs.SetResult(new Dictionary<string, object> { { "dummy", "editor" } });
+            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+#endif
+
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Request my leaderboard entries (returns a list of entries)
+        /// </summary>
+        public static Task<List<Dictionary<string, object>>> GetMyLeaderboardEntries(string leaderboardId)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_GetMyLeaderboardEntries(
+                leaderboardId,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new List<Dictionary<string, object>> {
+                new Dictionary<string, object> { { "noop", "noop" } }
+            });
+#endif
+
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Upload a score to a leaderboard
+        /// </summary>
+        public static Task<Dictionary<string, object>> UploadLeaderboardScore(string leaderboardId, int score, bool keepBest, string ugcId = null)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<Dictionary<string, object>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_UploadLeaderboardScore(
+                leaderboardId,
+                score,
+                keepBest,
+                ugcId,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
 #endif
 
             return tcs.Task;
@@ -193,27 +267,31 @@ namespace Wavedash
                 }
                 _pending.Remove(reqId);
 
-                var respToken = root["response"];
-                if (respToken == null || respToken.Type != JTokenType.Object)
+                var resp = (JObject)root["response"];
+                if (resp == null || !resp.Value<bool>("success"))
                 {
-                    (tcsObj as TaskCompletionSource<Dictionary<string, object>>)
-                        ?.SetException(new Exception("Invalid response format"));
-                    return;
-                }
-
-                var resp = (JObject)respToken;
-                var success = resp.Value<bool>("success");
-                if (!success)
-                {
-                    var message = resp.Value<string>("message");
-                    (tcsObj as TaskCompletionSource<Dictionary<string, object>>)
-                        ?.SetException(new Exception($"Request failed: {message}"));
+                    var msg = resp?.Value<string>("message") ?? "Invalid response";
+                    if (tcsObj is TaskCompletionSource<Dictionary<string, object>> dictFail)
+                        dictFail.SetException(new Exception($"Request failed: {msg}"));
+                    else if (tcsObj is TaskCompletionSource<List<Dictionary<string, object>>> listFail)
+                        listFail.SetException(new Exception($"Request failed: {msg}"));
                     return;
                 }
 
                 var dataToken = resp["data"];
-                var dict = dataToken?.ToObject<Dictionary<string, object>>();
-                (tcsObj as TaskCompletionSource<Dictionary<string, object>>)?.SetResult(dict);
+
+                if (tcsObj is TaskCompletionSource<Dictionary<string, object>> dictTcs)
+                {
+                    dictTcs.SetResult(dataToken?.ToObject<Dictionary<string, object>>());
+                }
+                else if (tcsObj is TaskCompletionSource<List<Dictionary<string, object>>> listTcs)
+                {
+                    listTcs.SetResult(dataToken?.ToObject<List<Dictionary<string, object>>>());
+                }
+                else
+                {
+                    Debug.LogError($"Unexpected TaskCompletionSource type for request {reqId}");
+                }
             }
             catch (Exception e)
             {
