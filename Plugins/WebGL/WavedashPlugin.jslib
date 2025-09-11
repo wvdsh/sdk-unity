@@ -129,6 +129,61 @@ mergeInto(LibraryManager.library, {
       requestId,
       args
     );
-  }
+  },
+
+  WavedashJS_UploadLeaderboardScore__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_UploadLeaderboardScore: function (leaderboardIdPtr, score, keepBest, ugcIdPtr, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var ugcId = UTF8ToString(ugcIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+  
+    var cb = __getWasmFunction(callbackPtr);
+  
+    var keepBestBool = keepBest !== 0;
+  
+    var args = { leaderboardId: lbId, score: score, keepBest: keepBestBool };
+    if (ugcId && ugcId.length > 0) {
+      args.ugcId = ugcId;
+    }
+  
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadLeaderboardScore) {
+          return Promise.reject('WavedashJS.uploadLeaderboardScore not available');
+        }
+        if (ugcId && ugcId.length > 0) {
+          return window.WavedashJS.uploadLeaderboardScore(lbId, score, keepBestBool, ugcId);
+        } else {
+          return window.WavedashJS.uploadLeaderboardScore(lbId, score, keepBestBool);
+        }
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_GetMyLeaderboardEntries__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetMyLeaderboardEntries: function (leaderboardIdPtr, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { leaderboardId: lbId };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getMyLeaderboardEntries) {
+          return Promise.reject('WavedashJS.getMyLeaderboardEntries not available');
+        }
+        return window.WavedashJS.getMyLeaderboardEntries(lbId);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
 
 });
