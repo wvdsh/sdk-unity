@@ -1,4 +1,37 @@
 mergeInto(LibraryManager.library, {
+  // === Shared helpers to reduce duplication ===
+  $WVD_Helpers__deps: ['$AllocUTF8'],
+  $WVD_Helpers: {
+    send: function (cb, requestId, responseObj) {
+      var json = JSON.stringify({ requestId: requestId, response: responseObj });
+      var buf = AllocUTF8(json);
+      cb(buf);
+      _free(buf);
+    },
+    run: function (getPromise, cb, requestId, args) {
+      var p;
+      try {
+        p = getPromise();
+      } catch (e) {
+        return WVD_Helpers.send(cb, requestId, {
+          success: false,
+          data: null,
+          args: args,
+          message: String(e)
+        });
+      }
+      p.then(function (resp) {
+        WVD_Helpers.send(cb, requestId, resp);
+      }).catch(function (err) {
+        WVD_Helpers.send(cb, requestId, {
+          success: false,
+          data: null,
+          args: args,
+          message: String(err)
+        });
+      });
+    }
+  },
   // === Helpers (JS library variables) ===
   // Define with $Name; call as Name(...) at runtime.
   $__getWasmFunction: function (ptr) {
@@ -54,46 +87,164 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
-  WavedashJS_GetOrCreateLeaderboard__deps: ['$__getWasmFunction', '$AllocUTF8'],
+  WavedashJS_GetLeaderboard__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetLeaderboard: function (leaderboardNamePtr, callbackPtr, requestIdPtr) {
+    var lbName = UTF8ToString(leaderboardNamePtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { name: lbName };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getLeaderboard) {
+          return Promise.reject('WavedashJS.getLeaderboard not available');
+        }
+        return window.WavedashJS.getLeaderboard(lbName);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_GetOrCreateLeaderboard__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_GetOrCreateLeaderboard: function (leaderboardNamePtr, sortMethod, displayType, callbackPtr, requestIdPtr) {
     var lbName = UTF8ToString(leaderboardNamePtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = {
-      name: lbName,
-      sortOrder: sortMethod,
-      displayType: displayType
-    };
+    var args = { name: lbName, sortOrder: sortMethod, displayType: displayType };
 
-    function sendResponse(responseObj) {
-      var json = JSON.stringify({
-        requestId: requestId,
-        response: responseObj
-      });
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getOrCreateLeaderboard) {
+          return Promise.reject('WavedashJS.getOrCreateLeaderboard not available');
+        }
+        return window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
 
-      var buf = AllocUTF8(json);
-      cb(buf);
-      _free(buf);
+  WavedashJS_UploadLeaderboardScore__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_UploadLeaderboardScore: function (leaderboardIdPtr, score, keepBest, ugcIdPtr, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var ugcId = UTF8ToString(ugcIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+  
+    var cb = __getWasmFunction(callbackPtr);
+  
+    var keepBestBool = keepBest !== 0;
+  
+    var args = { leaderboardId: lbId, score: score, keepBest: keepBestBool };
+    if (ugcId && ugcId.length > 0) {
+      args.ugcId = ugcId;
     }
+  
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadLeaderboardScore) {
+          return Promise.reject('WavedashJS.uploadLeaderboardScore not available');
+        }
+        if (ugcId && ugcId.length > 0) {
+          return window.WavedashJS.uploadLeaderboardScore(lbId, score, keepBestBool, ugcId);
+        } else {
+          return window.WavedashJS.uploadLeaderboardScore(lbId, score, keepBestBool);
+        }
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
 
-    var p = (window.WavedashJS && window.WavedashJS.getOrCreateLeaderboard)
-      ? window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType)
-      : Promise.reject("WavedashJS.getOrCreateLeaderboard not available");
+  WavedashJS_GetMyLeaderboardEntries__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetMyLeaderboardEntries: function (leaderboardIdPtr, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
 
-    p.then(function (response) {
-      sendResponse(response);
-    })
-    .catch(function (err) {
-      var failedResponse = {
-        success: false,
-        data: null,
-        args: args,
-        message: String(err)
-      };
-      sendResponse(failedResponse);
-    });
-  }
+    var cb = __getWasmFunction(callbackPtr);
 
+    var args = { leaderboardId: lbId };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getMyLeaderboardEntries) {
+          return Promise.reject('WavedashJS.getMyLeaderboardEntries not available');
+        }
+        return window.WavedashJS.getMyLeaderboardEntries(lbId);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_ListLeaderboardEntries__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListLeaderboardEntries: function (leaderboardIdPtr, offset, limit, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { leaderboardId: lbId, offset: offset, limit: limit };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntries) {
+          return Promise.reject('WavedashJS.listLeaderboardEntries not available');
+        }
+        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_ListLeaderboardEntriesAroundUser__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListLeaderboardEntriesAroundUser: function (leaderboardIdPtr, countAhead, countBehind, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { leaderboardId: lbId, countAhead: countAhead, countBehind: countBehind };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntriesAroundUser) {
+          return Promise.reject('WavedashJS.listLeaderboardEntriesAroundUser not available');
+        }
+        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_GetLeaderboardEntryCount: function (leaderboardIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+  
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLeaderboardEntryCount === 'function') {
+      try {
+        var count = window.WavedashJS.getLeaderboardEntryCount(lbId);
+        if (typeof count === 'number') {
+          return count;
+        }
+      } catch (e) {
+        console.error("getLeaderboardEntryCount failed:", e);
+      }
+    }
+  
+    return 0;
+  },
 });
