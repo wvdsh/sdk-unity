@@ -31,6 +31,7 @@ namespace Wavedash
         public delegate void JsCallback(string responseJson);
         private static JsCallback _callbackDelegate; // keep alive
 
+#region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern void WavedashJS_Init(string configJson);
@@ -69,8 +70,29 @@ namespace Wavedash
             string ugcId,
             IntPtr callbackPtr,
             string requestId);
-#endif
 
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListLeaderboardEntries(
+            string leaderboardId,
+            int offset,
+            int limit,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListLeaderboardEntriesAroundUser(
+            string leaderboardId,
+            int countAhead,
+            int countBehind,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_GetLeaderboardEntryCount(string leaderboardId);
+#endif
+#endregion
+
+#region SDK Implementations
         /// <summary>
         /// Initialize the Wavedash SDK
         /// </summary>
@@ -148,7 +170,6 @@ namespace Wavedash
 #else
             tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
 #endif
-
             return tcs.Task;
         }
 
@@ -175,8 +196,19 @@ namespace Wavedash
 #else
             tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
 #endif
-
             return tcs.Task;
+        }
+
+        /// <summary>
+        /// Request leaderboard entry count
+        /// </summary>
+        public static int GetLeaderboardEntryCount(string leaderboardId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLeaderboardEntryCount(leaderboardId);
+#else
+            return 0;
+#endif
         }
 
         /// <summary>
@@ -204,7 +236,6 @@ namespace Wavedash
                 new Dictionary<string, object> { { "noop", "noop" } }
             });
 #endif
-
             return tcs.Task;
         }
 
@@ -234,9 +265,69 @@ namespace Wavedash
 #else
             tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
 #endif
-
             return tcs.Task;
         }
+
+        /// <summary>
+        /// Request leaderboard entries
+        /// </summary>
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntries(string leaderboardId, int offset, int limit)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_ListLeaderboardEntries(
+                leaderboardId,
+                offset,
+                limit,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new List<Dictionary<string, object>> {
+                new Dictionary<string, object> { { "noop", "noop" } }
+            });
+#endif
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Request leaderboard entries around user
+        /// </summary>
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntriesAroundUser(string leaderboardId, int countAhead, int countBehind)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_ListLeaderboardEntriesAroundUser(
+                leaderboardId,
+                countAhead,
+                countBehind,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new List<Dictionary<string, object>> {
+                new Dictionary<string, object> { { "noop", "noop" } }
+            });
+#endif
+            return tcs.Task;
+        }
+#endregion
 
         /// <summary>
         /// Callback from JS side

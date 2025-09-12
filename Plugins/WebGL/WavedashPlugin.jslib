@@ -185,5 +185,66 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_ListLeaderboardEntries__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListLeaderboardEntries: function (leaderboardIdPtr, offset, limit, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
 
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { leaderboardId: lbId, offset: offset, limit: limit };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntries) {
+          return Promise.reject('WavedashJS.listLeaderboardEntries not available');
+        }
+        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_ListLeaderboardEntriesAroundUser__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListLeaderboardEntriesAroundUser: function (leaderboardIdPtr, countAhead, countBehind, callbackPtr, requestIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { leaderboardId: lbId, countAhead: countAhead, countBehind: countBehind };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntriesAroundUser) {
+          return Promise.reject('WavedashJS.listLeaderboardEntriesAroundUser not available');
+        }
+        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_GetLeaderboardEntryCount: function (leaderboardIdPtr) {
+    var lbId = UTF8ToString(leaderboardIdPtr);
+  
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLeaderboardEntryCount === 'function') {
+      try {
+        var count = window.WavedashJS.getLeaderboardEntryCount(lbId);
+        if (typeof count === 'number') {
+          return count;
+        }
+      } catch (e) {
+        console.error("getLeaderboardEntryCount failed:", e);
+      }
+    }
+  
+    return 0;
+  },
 });
