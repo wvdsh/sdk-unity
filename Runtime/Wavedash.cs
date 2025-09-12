@@ -1,15 +1,16 @@
-using System.Runtime.InteropServices;
-using System.Collections.Generic;
-using UnityEngine;
-using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace Wavedash
 {
     /// <summary>
     /// Main entry point for the Wavedash SDK
-    /// Usage: Wavedash.Init(config); GetUser(); etc.;
+    /// Usage: await SDK.GetLeaderboard("name"); etc.
     /// </summary>
     public static class SDK
     {
@@ -22,14 +23,15 @@ namespace Wavedash
         private static WavedashCallbackReceiver _callbackReceiver;
         private static bool _debug = false;
 
-        // Pending callbacks by requestId
-        internal static readonly Dictionary<string, Action<Dictionary<string, object>?, bool>> _pendingCallbacks = new();
+        // Pending TaskCompletionSources by requestId
+        private static readonly Dictionary<string, object> _pending = new();
 
         // jslib -> Unity callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate void LeaderboardCallback(string responseJson);
-        private static LeaderboardCallback _lbCallback; // keep alive
+        public delegate void JsCallback(string responseJson);
+        private static JsCallback _callbackDelegate; // keep alive
 
+#region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern void WavedashJS_Init(string configJson);
@@ -47,18 +49,58 @@ namespace Wavedash
             int displayType,
             IntPtr callbackPtr,
             string requestId);
-#endif
 
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_GetLeaderboard(
+            string leaderboardName,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_GetMyLeaderboardEntries(
+            string leaderboardId,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_UploadLeaderboardScore(
+            string leaderboardId,
+            int score,
+            bool keepBest,
+            string ugcId,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListLeaderboardEntries(
+            string leaderboardId,
+            int offset,
+            int limit,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListLeaderboardEntriesAroundUser(
+            string leaderboardId,
+            int countAhead,
+            int countBehind,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_GetLeaderboardEntryCount(string leaderboardId);
+#endif
+#endregion
+
+#region SDK Implementations
         /// <summary>
         /// Initialize the Wavedash SDK
         /// </summary>
         public static void Init(Dictionary<string, object> config)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            // Ensure callback receiver exists
             EnsureCallbackReceiver();
 
-            // Set debug mode
             _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
 
             string configJson = JsonConvert.SerializeObject(config);
@@ -103,22 +145,20 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Request leaderboard data
+        /// Request leaderboard data if it exists, or create it if it doesn't
         /// </summary>
-        public static LeaderboardRequest GetOrCreateLeaderboard(string leaderboardName, int sortMethod, int displayType)
+        public static Task<Dictionary<string, object>> GetOrCreateLeaderboard(
+            string leaderboardName, int sortMethod, int displayType)
         {
             string requestId = Guid.NewGuid().ToString("N");
-
-            // Reserve slot in pending callbacks
-            _pendingCallbacks[requestId] = null;
+            var tcs = new TaskCompletionSource<Dictionary<string, object>>();
+            _pending[requestId] = tcs;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (_lbCallback == null)
-            {
-                _lbCallback = LeaderboardCallbackImpl; // assign once
-            }
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
 
-            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_lbCallback);
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
 
             WavedashJS_GetOrCreateLeaderboard(
                 leaderboardName,
@@ -127,100 +167,232 @@ namespace Wavedash
                 fnPtr,
                 requestId
             );
+#else
+            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+            _pending.Remove(requestId);
 #endif
-
-            return new LeaderboardRequest(requestId);
+            return tcs.Task;
         }
 
         /// <summary>
         /// Request leaderboard data
         /// </summary>
-        [AOT.MonoPInvokeCallback(typeof(LeaderboardCallback))]
+        public static Task<Dictionary<string, object>> GetLeaderboard(string leaderboardName)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<Dictionary<string, object>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_GetLeaderboard(
+                leaderboardName,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+            _pending.Remove(requestId);
+#endif
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Request leaderboard entry count
+        /// </summary>
+        public static int GetLeaderboardEntryCount(string leaderboardId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLeaderboardEntryCount(leaderboardId);
+#else
+            return 0;
+#endif
+        }
+
+        /// <summary>
+        /// Request my leaderboard entries (returns a list of entries)
+        /// </summary>
+        public static Task<List<Dictionary<string, object>>> GetMyLeaderboardEntries(string leaderboardId)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_GetMyLeaderboardEntries(
+                leaderboardId,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new List<Dictionary<string, object>> {
+                new Dictionary<string, object> { { "noop", "noop" } }
+            });
+            _pending.Remove(requestId);
+#endif
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Upload a score to a leaderboard
+        /// </summary>
+        public static Task<Dictionary<string, object>> UploadLeaderboardScore(string leaderboardId, int score, bool keepBest, string ugcId = null)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<Dictionary<string, object>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_UploadLeaderboardScore(
+                leaderboardId,
+                score,
+                keepBest,
+                ugcId,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+            _pending.Remove(requestId);
+#endif
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Request leaderboard entries
+        /// </summary>
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntries(string leaderboardId, int offset, int limit)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_ListLeaderboardEntries(
+                leaderboardId,
+                offset,
+                limit,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new List<Dictionary<string, object>> {
+                new Dictionary<string, object> { { "noop", "noop" } }
+            });
+            _pending.Remove(requestId);
+#endif
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Request leaderboard entries around user
+        /// </summary>
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntriesAroundUser(string leaderboardId, int countAhead, int countBehind)
+        {
+            string requestId = Guid.NewGuid().ToString("N");
+            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
+            _pending[requestId] = tcs;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (_callbackDelegate == null)
+                _callbackDelegate = LeaderboardCallbackImpl;
+
+            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
+
+            WavedashJS_ListLeaderboardEntriesAroundUser(
+                leaderboardId,
+                countAhead,
+                countBehind,
+                fnPtr,
+                requestId
+            );
+#else
+            tcs.SetResult(new List<Dictionary<string, object>> {
+                new Dictionary<string, object> { { "noop", "noop" } }
+            });
+            _pending.Remove(requestId);
+#endif
+            return tcs.Task;
+        }
+#endregion
+
+        /// <summary>
+        /// Callback from JS side
+        /// </summary>
+        [AOT.MonoPInvokeCallback(typeof(JsCallback))]
         private static void LeaderboardCallbackImpl(string responseJson)
         {
             try
             {
                 if (string.IsNullOrEmpty(responseJson))
                 {
-                    Debug.LogError("Leaderboard callback received empty JSON.");
+                    Debug.LogError("Callback received empty JSON.");
                     return;
                 }
 
                 var root = JObject.Parse(responseJson);
-
-                // Must have requestId
                 var reqId = root.Value<string>("requestId");
                 if (string.IsNullOrEmpty(reqId))
                 {
-                    Debug.LogError("Leaderboard response missing 'requestId'.");
+                    Debug.LogError("Response missing 'requestId'.");
                     return;
                 }
 
-                // Must have callback
-                if (!_pendingCallbacks.TryGetValue(reqId, out var cb))
+                if (!_pending.TryGetValue(reqId, out var tcsObj))
                 {
-                    Debug.LogWarning($"No pending callback for requestId {reqId}");
+                    Debug.LogWarning($"No pending task for requestId {reqId}");
                     return;
                 }
-                _pendingCallbacks.Remove(reqId);
+                _pending.Remove(reqId);
 
-                // Must have response string
-                var respToken = root["response"];
-                if (respToken == null || respToken.Type != JTokenType.Object)
+                var resp = (JObject)root["response"];
+                if (resp == null || !resp.Value<bool>("success"))
                 {
-                    Debug.LogError($"Leaderboard response {reqId} missing or invalid 'response' field.");
-                    cb?.Invoke(null, true);
-                    return;
-                }
-
-                var resp = (JObject)respToken;
-                var success = resp.Value<bool>("success");
-
-                // Check success
-                if (!success)
-                {
-                    var message = resp.Value<string>("message");
-                    Debug.LogWarning($"Leaderboard request {reqId} failed: {message}");
-                    cb?.Invoke(null, success);
+                    var msg = resp?.Value<string>("message") ?? "Invalid response";
+                    if (tcsObj is TaskCompletionSource<Dictionary<string, object>> dictFail)
+                        dictFail.SetException(new Exception($"Request failed: {msg}"));
+                    else if (tcsObj is TaskCompletionSource<List<Dictionary<string, object>>> listFail)
+                        listFail.SetException(new Exception($"Request failed: {msg}"));
                     return;
                 }
 
                 var dataToken = resp["data"];
-                cb?.Invoke(dataToken.ToObject<Dictionary<string, object>>(), success);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to parse leaderboard data: {e.Message}");
-            }
-        }
 
-        /// <summary>
-        /// Request handle that supports .Then() chaining.
-        /// </summary>
-        public class LeaderboardRequest
-        {
-            private readonly string _requestId;
-
-            internal LeaderboardRequest(string requestId)
-            {
-                _requestId = requestId;
-            }
-
-            public LeaderboardRequest Then(Action<Dictionary<string, object>?, bool> continuation)
-            {
-                if (_pendingCallbacks.TryGetValue(_requestId, out var existing))
+                if (tcsObj is TaskCompletionSource<Dictionary<string, object>> dictTcs)
                 {
-                    _pendingCallbacks[_requestId] = (data, success) =>
-                    {
-                        existing?.Invoke(data, success);
-                        continuation?.Invoke(data, success);
-                    };
+                    dictTcs.SetResult(dataToken?.ToObject<Dictionary<string, object>>());
+                }
+                else if (tcsObj is TaskCompletionSource<List<Dictionary<string, object>>> listTcs)
+                {
+                    listTcs.SetResult(dataToken?.ToObject<List<Dictionary<string, object>>>());
                 }
                 else
                 {
-                    _pendingCallbacks[_requestId] = continuation;
+                    Debug.LogError($"Unexpected TaskCompletionSource type for request {reqId}");
                 }
-                return this;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to parse response: {e.Message}");
             }
         }
 
@@ -238,56 +410,38 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Internal class to receive other callbacks from JavaScript
+        /// Internal class to receive lobby events from JavaScript
         /// </summary>
         private class WavedashCallbackReceiver : MonoBehaviour
         {
-            // Called by JavaScript via SendMessage
             public void OnLobbyJoinedCallback(string dataJson)
             {
-                if (_debug)
-                    Debug.Log("OnLobbyJoinedCallback triggered with: " + dataJson);
-
-                try
-                {
-                    var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
-                    OnLobbyJoined?.Invoke(data);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Failed to parse lobby joined data: {e.Message}");
-                }
+                if (_debug) Debug.Log("OnLobbyJoined: " + dataJson);
+                TryInvoke(dataJson, OnLobbyJoined);
             }
 
             public void OnLobbyLeftCallback(string dataJson)
             {
-                if (_debug)
-                    Debug.Log("OnLobbyLeftCallback triggered with: " + dataJson);
-
-                try
-                {
-                    var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
-                    OnLobbyLeft?.Invoke(data);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Failed to parse lobby left data: {e.Message}");
-                }
+                if (_debug) Debug.Log("OnLobbyLeft: " + dataJson);
+                TryInvoke(dataJson, OnLobbyLeft);
             }
 
             public void OnLobbyMessageCallback(string dataJson)
             {
-                if (_debug)
-                    Debug.Log("OnLobbyMessageCallback triggered with: " + dataJson);
+                if (_debug) Debug.Log("OnLobbyMessage: " + dataJson);
+                TryInvoke(dataJson, OnLobbyMessage);
+            }
 
+            private void TryInvoke(string json, Action<Dictionary<string, object>> action)
+            {
                 try
                 {
-                    var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
-                    OnLobbyMessage?.Invoke(data);
+                    var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                    action?.Invoke(data);
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"Failed to parse lobby message data: {e.Message}");
+                    Debug.LogError($"Failed to parse lobby data: {e.Message}");
                 }
             }
         }
