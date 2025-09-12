@@ -169,6 +169,7 @@ namespace Wavedash
             );
 #else
             tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+            _pending.Remove(requestId);
 #endif
             return tcs.Task;
         }
@@ -195,6 +196,7 @@ namespace Wavedash
             );
 #else
             tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+            _pending.Remove(requestId);
 #endif
             return tcs.Task;
         }
@@ -235,6 +237,7 @@ namespace Wavedash
             tcs.SetResult(new List<Dictionary<string, object>> {
                 new Dictionary<string, object> { { "noop", "noop" } }
             });
+            _pending.Remove(requestId);
 #endif
             return tcs.Task;
         }
@@ -264,6 +267,7 @@ namespace Wavedash
             );
 #else
             tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+            _pending.Remove(requestId);
 #endif
             return tcs.Task;
         }
@@ -294,6 +298,7 @@ namespace Wavedash
             tcs.SetResult(new List<Dictionary<string, object>> {
                 new Dictionary<string, object> { { "noop", "noop" } }
             });
+            _pending.Remove(requestId);
 #endif
             return tcs.Task;
         }
@@ -324,6 +329,7 @@ namespace Wavedash
             tcs.SetResult(new List<Dictionary<string, object>> {
                 new Dictionary<string, object> { { "noop", "noop" } }
             });
+            _pending.Remove(requestId);
 #endif
             return tcs.Task;
         }
