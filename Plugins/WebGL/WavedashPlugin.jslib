@@ -288,14 +288,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    // Ensure parent folder exists
-    try {
-      var parentDir = PATH.dirname(downloadToLocation);
-      FS.mkdirTree(parentDir);
-    } catch (e) {
-      // swallow errors like "already exists"
-    }
-
     var args = { filePath: filePath, downloadToLocation: downloadToLocation };
 
     WVD_Helpers.run(
@@ -304,6 +296,50 @@ mergeInto(LibraryManager.library, {
           return Promise.reject('WavedashJS.downloadRemoteFile not available');
         }
         return window.WavedashJS.downloadRemoteFile(filePath, downloadToLocation);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_DownloadRemoteDirectory__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_DownloadRemoteDirectory: function (pathPtr, callbackPtr, requestIdPtr) {
+    var path = UTF8ToString(pathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { path: path };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteDirectory) {
+          return Promise.reject('WavedashJS.downloadRemoteDirectory not available');
+        }
+        return window.WavedashJS.downloadRemoteDirectory(path);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_ListRemoteDirectory__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListRemoteDirectory: function (pathPtr, callbackPtr, requestIdPtr) {
+    var path = UTF8ToString(pathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { path: path };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listRemoteDirectory) {
+          return Promise.reject('WavedashJS.listRemoteDirectory not available');
+        }
+        return window.WavedashJS.listRemoteDirectory(path);
       },
       cb,
       requestId,
