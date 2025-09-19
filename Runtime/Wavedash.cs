@@ -94,20 +94,33 @@ namespace Wavedash
         [DllImport("__Internal")]
         private static extern int WavedashJS_GetLeaderboardEntryCount(string leaderboardId);
 
-        // UGC (User Generated Content) Functions
+        // Save state / Remote File Storage
         [DllImport("__Internal")]
         private static extern void WavedashJS_UploadRemoteFile(
-            string filePath,
+            string path,
             string uploadToLocation,
             IntPtr callbackPtr,
             string requestId);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_DownloadRemoteFile(
-            string filePath,
+            string path,
             string downloadToLocation,
             IntPtr callbackPtr,
             string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_DownloadRemoteDirectory(
+            string path,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListRemoteDirectory(
+            string path,
+            IntPtr callbackPtr,
+            string requestId);
+
 #endif
 #endregion
 
@@ -240,21 +253,74 @@ namespace Wavedash
         // ===========
         // Remote Files
         // ===========
-        public static Task<string> UploadRemoteFile(string filePath, string uploadToLocation) =>
+        public static Task<string> UploadRemoteFile(string path)
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_UploadRemoteFile(filePath, uploadToLocation, fnPtr, requestId));
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"UploadRemoteFile: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_UploadRemoteFile(path, path, fnPtr, requestId));
 #else
-            Task.FromResult<string>(null);
+            return Task.FromResult<string>(null);
 #endif
+        }
 
-        public static Task<string> DownloadRemoteFile(string filePath, string downloadToLocation = null) =>
+        public static Task<string> DownloadRemoteFile(string path)
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_DownloadRemoteFile(filePath, downloadToLocation, fnPtr, requestId));
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"DownloadRemoteFile: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                var dir = System.IO.Path.GetDirectoryName(path);
+                if (!System.IO.Directory.Exists(dir))
+                {
+                    UnityEngine.Debug.LogWarning($"DownloadRemoteFile: Directory '{dir}' does not exist. It will be created.");
+                    System.IO.Directory.CreateDirectory(dir);
+                }
+            }
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_DownloadRemoteFile(path, path, fnPtr, requestId));
 #else
-            Task.FromResult<string>(null);
+            return Task.FromResult<string>(null);
 #endif
+        }
+
+        public static Task<string> DownloadRemoteDirectory(string path)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"DownloadRemoteDirectory: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
+
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_DownloadRemoteDirectory(path, fnPtr, requestId));
+#else
+            return Task.FromResult<string>(null);
+#endif
+        }
+
+        public static Task<List<Dictionary<string, object>>> ListRemoteDirectory(string path)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"ListRemoteDirectory: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
+            
+            return InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_ListRemoteDirectory(path, fnPtr, requestId));
+#else
+            return Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
+        }
+    
 #endregion
 
         [AOT.MonoPInvokeCallback(typeof(JsCallback))]
