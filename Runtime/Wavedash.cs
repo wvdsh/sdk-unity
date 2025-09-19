@@ -37,11 +37,15 @@ namespace Wavedash
         private static extern void WavedashJS_Init(string configJson);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_BindFS();
+
+        [DllImport("__Internal")]
         private static extern int WavedashJS_IsReady();
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
 
+        // Leaderboard Functions
         [DllImport("__Internal")]
         private static extern void WavedashJS_GetOrCreateLeaderboard(
             string leaderboardName,
@@ -89,6 +93,34 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern int WavedashJS_GetLeaderboardEntryCount(string leaderboardId);
+
+        // Save state / Remote File Storage
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_UploadRemoteFile(
+            string path,
+            string uploadToLocation,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_DownloadRemoteFile(
+            string path,
+            string downloadToLocation,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_DownloadRemoteDirectory(
+            string path,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListRemoteDirectory(
+            string path,
+            IntPtr callbackPtr,
+            string requestId);
+
 #endif
 #endregion
 
@@ -105,14 +137,12 @@ namespace Wavedash
 
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
+            WavedashJS_BindFS();
 #else
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
 #endif
         }
 
-        /// <summary>
-        /// Check if the SDK is ready
-        /// </summary>
         public static bool IsReady()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -122,9 +152,6 @@ namespace Wavedash
 #endif
         }
 
-        /// <summary>
-        /// Get the current user data
-        /// </summary>
         public static Dictionary<string, object> GetUser()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -144,66 +171,44 @@ namespace Wavedash
             return null;
         }
 
-        /// <summary>
-        /// Request leaderboard data if it exists, or create it if it doesn't
-        /// </summary>
-        public static Task<Dictionary<string, object>> GetOrCreateLeaderboard(
-            string leaderboardName, int sortMethod, int displayType)
+        private static Task<T> InvokeJs<T>(Action<IntPtr, string> jsInvoker)
         {
             string requestId = Guid.NewGuid().ToString("N");
-            var tcs = new TaskCompletionSource<Dictionary<string, object>>();
+            var tcs = new TaskCompletionSource<T>();
             _pending[requestId] = tcs;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
             if (_callbackDelegate == null)
-                _callbackDelegate = LeaderboardCallbackImpl;
+                _callbackDelegate = ResponseHandlerCallbackImpl;
 
             IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
-
-            WavedashJS_GetOrCreateLeaderboard(
-                leaderboardName,
-                sortMethod,
-                displayType,
-                fnPtr,
-                requestId
-            );
+            jsInvoker(fnPtr, requestId);
 #else
-            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
+            tcs.SetResult(default!);
             _pending.Remove(requestId);
 #endif
             return tcs.Task;
         }
 
-        /// <summary>
-        /// Request leaderboard data
-        /// </summary>
-        public static Task<Dictionary<string, object>> GetLeaderboard(string leaderboardName)
-        {
-            string requestId = Guid.NewGuid().ToString("N");
-            var tcs = new TaskCompletionSource<Dictionary<string, object>>();
-            _pending[requestId] = tcs;
-
+        // ===========
+        // Leaderboards
+        // ===========
+        public static Task<Dictionary<string, object>> GetOrCreateLeaderboard(string leaderboardName, int sortMethod, int displayType) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (_callbackDelegate == null)
-                _callbackDelegate = LeaderboardCallbackImpl;
-
-            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
-
-            WavedashJS_GetLeaderboard(
-                leaderboardName,
-                fnPtr,
-                requestId
-            );
+            InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_GetOrCreateLeaderboard(leaderboardName, sortMethod, displayType, fnPtr, requestId));
 #else
-            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
-            _pending.Remove(requestId);
+            Task.FromResult<Dictionary<string, object>>(null);
 #endif
-            return tcs.Task;
-        }
 
-        /// <summary>
-        /// Request leaderboard entry count
-        /// </summary>
+        public static Task<Dictionary<string, object>> GetLeaderboard(string leaderboardName) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_GetLeaderboard(leaderboardName, fnPtr, requestId));
+#else
+            Task.FromResult<Dictionary<string, object>>(null);
+#endif
+
         public static int GetLeaderboardEntryCount(string leaderboardId)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -213,133 +218,113 @@ namespace Wavedash
 #endif
         }
 
-        /// <summary>
-        /// Request my leaderboard entries (returns a list of entries)
-        /// </summary>
-        public static Task<List<Dictionary<string, object>>> GetMyLeaderboardEntries(string leaderboardId)
-        {
-            string requestId = Guid.NewGuid().ToString("N");
-            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
-            _pending[requestId] = tcs;
-
+        public static Task<List<Dictionary<string, object>>> GetMyLeaderboardEntries(string leaderboardId) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (_callbackDelegate == null)
-                _callbackDelegate = LeaderboardCallbackImpl;
-
-            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
-
-            WavedashJS_GetMyLeaderboardEntries(
-                leaderboardId,
-                fnPtr,
-                requestId
-            );
+            InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_GetMyLeaderboardEntries(leaderboardId, fnPtr, requestId));
 #else
-            tcs.SetResult(new List<Dictionary<string, object>> {
-                new Dictionary<string, object> { { "noop", "noop" } }
-            });
-            _pending.Remove(requestId);
+            Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
-            return tcs.Task;
+
+        public static Task<Dictionary<string, object>> UploadLeaderboardScore(string leaderboardId, int score, bool keepBest, string ugcId = null) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_UploadLeaderboardScore(leaderboardId, score, keepBest, ugcId, fnPtr, requestId));
+#else
+            Task.FromResult<Dictionary<string, object>>(null);
+#endif
+
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntries(string leaderboardId, int offset, int limit) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_ListLeaderboardEntries(leaderboardId, offset, limit, fnPtr, requestId));
+#else
+            Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
+
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntriesAroundUser(string leaderboardId, int countAhead, int countBehind) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_ListLeaderboardEntriesAroundUser(leaderboardId, countAhead, countBehind, fnPtr, requestId));
+#else
+            Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
+
+        // ===========
+        // Remote Files
+        // ===========
+        public static Task<string> UploadRemoteFile(string path)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"UploadRemoteFile: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_UploadRemoteFile(path, path, fnPtr, requestId));
+#else
+            return Task.FromResult<string>(null);
+#endif
         }
 
-        /// <summary>
-        /// Upload a score to a leaderboard
-        /// </summary>
-        public static Task<Dictionary<string, object>> UploadLeaderboardScore(string leaderboardId, int score, bool keepBest, string ugcId = null)
+        public static Task<string> DownloadRemoteFile(string path)
         {
-            string requestId = Guid.NewGuid().ToString("N");
-            var tcs = new TaskCompletionSource<Dictionary<string, object>>();
-            _pending[requestId] = tcs;
-
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (_callbackDelegate == null)
-                _callbackDelegate = LeaderboardCallbackImpl;
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"DownloadRemoteFile: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
 
-            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
-
-            WavedashJS_UploadLeaderboardScore(
-                leaderboardId,
-                score,
-                keepBest,
-                ugcId,
-                fnPtr,
-                requestId
-            );
+            if (!string.IsNullOrEmpty(path))
+            {
+                var dir = System.IO.Path.GetDirectoryName(path);
+                if (!System.IO.Directory.Exists(dir))
+                {
+                    UnityEngine.Debug.LogWarning($"DownloadRemoteFile: Directory '{dir}' does not exist. It will be created.");
+                    System.IO.Directory.CreateDirectory(dir);
+                }
+            }
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_DownloadRemoteFile(path, path, fnPtr, requestId));
 #else
-            tcs.SetResult(new Dictionary<string, object> { { "noop", "noop" } });
-            _pending.Remove(requestId);
+            return Task.FromResult<string>(null);
 #endif
-            return tcs.Task;
         }
 
-        /// <summary>
-        /// Request leaderboard entries
-        /// </summary>
-        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntries(string leaderboardId, int offset, int limit)
+        public static Task<string> DownloadRemoteDirectory(string path)
         {
-            string requestId = Guid.NewGuid().ToString("N");
-            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
-            _pending[requestId] = tcs;
-
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (_callbackDelegate == null)
-                _callbackDelegate = LeaderboardCallbackImpl;
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"DownloadRemoteDirectory: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
 
-            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
-
-            WavedashJS_ListLeaderboardEntries(
-                leaderboardId,
-                offset,
-                limit,
-                fnPtr,
-                requestId
-            );
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_DownloadRemoteDirectory(path, fnPtr, requestId));
 #else
-            tcs.SetResult(new List<Dictionary<string, object>> {
-                new Dictionary<string, object> { { "noop", "noop" } }
-            });
-            _pending.Remove(requestId);
+            return Task.FromResult<string>(null);
 #endif
-            return tcs.Task;
         }
 
-        /// <summary>
-        /// Request leaderboard entries around user
-        /// </summary>
-        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntriesAroundUser(string leaderboardId, int countAhead, int countBehind)
+        public static Task<List<Dictionary<string, object>>> ListRemoteDirectory(string path)
         {
-            string requestId = Guid.NewGuid().ToString("N");
-            var tcs = new TaskCompletionSource<List<Dictionary<string, object>>>();
-            _pending[requestId] = tcs;
-
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (_callbackDelegate == null)
-                _callbackDelegate = LeaderboardCallbackImpl;
-
-            IntPtr fnPtr = Marshal.GetFunctionPointerForDelegate(_callbackDelegate);
-
-            WavedashJS_ListLeaderboardEntriesAroundUser(
-                leaderboardId,
-                countAhead,
-                countBehind,
-                fnPtr,
-                requestId
-            );
+            if (!path.StartsWith(UnityEngine.Application.persistentDataPath))
+            {
+                UnityEngine.Debug.LogWarning($"ListRemoteDirectory: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
+            }
+            
+            return InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_ListRemoteDirectory(path, fnPtr, requestId));
 #else
-            tcs.SetResult(new List<Dictionary<string, object>> {
-                new Dictionary<string, object> { { "noop", "noop" } }
-            });
-            _pending.Remove(requestId);
+            return Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
-            return tcs.Task;
         }
+    
 #endregion
 
-        /// <summary>
-        /// Callback from JS side
-        /// </summary>
         [AOT.MonoPInvokeCallback(typeof(JsCallback))]
-        private static void LeaderboardCallbackImpl(string responseJson)
+        private static void ResponseHandlerCallbackImpl(string responseJson)
         {
             try
             {
@@ -368,24 +353,18 @@ namespace Wavedash
                 if (resp == null || !resp.Value<bool>("success"))
                 {
                     var msg = resp?.Value<string>("message") ?? "Invalid response";
-                    if (tcsObj is TaskCompletionSource<Dictionary<string, object>> dictFail)
-                        dictFail.SetException(new Exception($"Request failed: {msg}"));
-                    else if (tcsObj is TaskCompletionSource<List<Dictionary<string, object>>> listFail)
-                        listFail.SetException(new Exception($"Request failed: {msg}"));
+                    SetResultIfMatch<Dictionary<string, object>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
+                    SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
+                    SetResultIfMatch<string>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     return;
                 }
 
                 var dataToken = resp["data"];
 
-                if (tcsObj is TaskCompletionSource<Dictionary<string, object>> dictTcs)
-                {
-                    dictTcs.SetResult(dataToken?.ToObject<Dictionary<string, object>>());
-                }
-                else if (tcsObj is TaskCompletionSource<List<Dictionary<string, object>>> listTcs)
-                {
-                    listTcs.SetResult(dataToken?.ToObject<List<Dictionary<string, object>>>());
-                }
-                else
+                if (!SetResultIfMatch<Dictionary<string, object>>(tcsObj, dataToken) &&
+                    !SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, dataToken) &&
+                    !SetResultIfMatch<string>(tcsObj, dataToken) &&
+                    !SetResultIfMatch<object>(tcsObj, dataToken))
                 {
                     Debug.LogError($"Unexpected TaskCompletionSource type for request {reqId}");
                 }
@@ -396,9 +375,24 @@ namespace Wavedash
             }
         }
 
-        /// <summary>
-        /// Ensures the callback receiver GameObject exists
-        /// </summary>
+        private static bool SetResultIfMatch<T>(object tcsObj, JToken token, Exception ex = null)
+        {
+            if (tcsObj is TaskCompletionSource<T> tcs)
+            {
+                if (ex != null)
+                {
+                    tcs.SetException(ex);
+                }
+                else
+                {
+                    var result = token != null ? token.ToObject<T>() : default;
+                    tcs.SetResult(result);
+                }
+                return true;
+            }
+            return false;
+        }
+
         private static void EnsureCallbackReceiver()
         {
             if (_callbackReceiver == null)
@@ -409,9 +403,6 @@ namespace Wavedash
             }
         }
 
-        /// <summary>
-        /// Internal class to receive lobby events from JavaScript
-        /// </summary>
         private class WavedashCallbackReceiver : MonoBehaviour
         {
             public void OnLobbyJoinedCallback(string dataJson)
