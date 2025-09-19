@@ -65,6 +65,15 @@ mergeInto(LibraryManager.library, {
     }
   },
 
+  WavedashJS_BindFS: function () {
+    if (typeof window.WavedashJS !== "undefined" && window.WavedashJS.engineInstance) {
+      window.WavedashJS.engineInstance.FS = FS;
+      console.log("[Wavedash] FS binded to WavedashJS.engineInstance");
+    } else {
+      console.error("[Wavedash] WavedashJS.engineInstance not set");
+    }
+  },
+
   WavedashJS_IsReady: function () {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
@@ -246,5 +255,95 @@ mergeInto(LibraryManager.library, {
     }
   
     return 0;
+  },
+
+  WavedashJS_UploadRemoteFile__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_UploadRemoteFile: function (filePathPtr, uploadToLocationPtr, callbackPtr, requestIdPtr) {
+    var filePath = UTF8ToString(filePathPtr);
+    var uploadToLocation = UTF8ToString(uploadToLocationPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { filePath: filePath, uploadToLocation: uploadToLocation };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadRemoteFile) {
+          return Promise.reject('WavedashJS.uploadRemoteFile not available');
+        }
+        return window.WavedashJS.uploadRemoteFile(filePath, uploadToLocation);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_DownloadRemoteFile__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_DownloadRemoteFile: function (filePathPtr, downloadToLocationPtr, callbackPtr, requestIdPtr) {
+    var filePath = UTF8ToString(filePathPtr);
+    var downloadToLocation = UTF8ToString(downloadToLocationPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { filePath: filePath, downloadToLocation: downloadToLocation };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteFile) {
+          return Promise.reject('WavedashJS.downloadRemoteFile not available');
+        }
+        return window.WavedashJS.downloadRemoteFile(filePath, downloadToLocation);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_DownloadRemoteDirectory__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_DownloadRemoteDirectory: function (pathPtr, callbackPtr, requestIdPtr) {
+    var path = UTF8ToString(pathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { path: path };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteDirectory) {
+          return Promise.reject('WavedashJS.downloadRemoteDirectory not available');
+        }
+        return window.WavedashJS.downloadRemoteDirectory(path);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_ListRemoteDirectory__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListRemoteDirectory: function (pathPtr, callbackPtr, requestIdPtr) {
+    var path = UTF8ToString(pathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { path: path };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listRemoteDirectory) {
+          return Promise.reject('WavedashJS.listRemoteDirectory not available');
+        }
+        return window.WavedashJS.listRemoteDirectory(path);
+      },
+      cb,
+      requestId,
+      args
+    );
   },
 });
