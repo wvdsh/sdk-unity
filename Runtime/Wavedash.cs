@@ -31,7 +31,7 @@ namespace Wavedash
         public delegate void JsCallback(string responseJson);
         private static JsCallback _callbackDelegate; // keep alive
 
-#region WavedashJS Functions
+        #region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern void WavedashJS_Init(string configJson);
@@ -121,10 +121,26 @@ namespace Wavedash
             IntPtr callbackPtr,
             string requestId);
 
-#endif
-#endregion
+        // User Generated Content (UGC)
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_CreateUGCItem(
+            int ugcType,
+            string title,
+            string description,
+            int visibility,
+            string filePath,
+            IntPtr callbackPtr, string requestId);
+        
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_DownloadUGCItem(
+            string ugcId,
+            string filePath,
+            IntPtr callbackPtr, string requestId);
 
-#region SDK Implementations
+#endif
+        #endregion
+
+        #region SDK Implementations
         /// <summary>
         /// Initialize the Wavedash SDK
         /// </summary>
@@ -320,8 +336,37 @@ namespace Wavedash
             return Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
         }
-    
+
+        // ===========
+        // User Generated Content (UGC)
+        // ===========
+
+        public static Task<string> CreateUGCItem(
+            int ugcType,
+            string title,
+            string description,
+            int visibility = WavedashConstants.UGCVisibility.PUBLIC,
+            string filePath = null)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_CreateUGCItem(ugcType, title, description, visibility, filePath, fnPtr, requestId));
+#else
+            return Task.FromResult<string>(null);
+#endif
+        }
+
+        public static Task<string> DownloadUGCItem(string ugcId, string localFilePath)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_DownloadUGCItem(ugcId, localFilePath, fnPtr, requestId));
+#else
+            return Task.FromResult<string>(null);
+#endif
+        }
 #endregion
+
 
         [AOT.MonoPInvokeCallback(typeof(JsCallback))]
         private static void ResponseHandlerCallbackImpl(string responseJson)
@@ -356,6 +401,7 @@ namespace Wavedash
                     SetResultIfMatch<Dictionary<string, object>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<string>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
+                    SetResultIfMatch<object>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     return;
                 }
 
