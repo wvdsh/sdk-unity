@@ -347,11 +347,9 @@ mergeInto(LibraryManager.library, {
     );
   },
 
-  WavedashJS_CreateUGCItem: function (ugcTypePtr, titlePtr, descriptionPtr, visibilityPtr, filePathPtr, callbackPtr, requestIdPtr) {
-    var ugcType = getValue(ugcTypePtr, "i32");        // read enum int
+  WavedashJS_CreateUGCItem: function (ugcType, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
     var title = UTF8ToString(titlePtr);
     var description = UTF8ToString(descriptionPtr);
-    var visibility = getValue(visibilityPtr, "i32");  // read enum int
     var filePath = UTF8ToString(filePathPtr);
 
     var cb = __getWasmFunction(callbackPtr);
