@@ -347,6 +347,7 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_CreateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_CreateUGCItem: function (ugcType, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
     var title = UTF8ToString(titlePtr);
     var description = UTF8ToString(descriptionPtr);
