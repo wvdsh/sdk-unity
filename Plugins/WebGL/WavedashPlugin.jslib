@@ -346,4 +346,51 @@ mergeInto(LibraryManager.library, {
       args
     );
   },
+
+  WavedashJS_CreateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_CreateUGCItem: function (ugcType, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
+    var title = UTF8ToString(titlePtr);
+    var description = UTF8ToString(descriptionPtr);
+    var filePath = UTF8ToString(filePathPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var args = { ugcType, title, description, visibility, filePath };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createUGCItem) {
+          return Promise.reject("WavedashJS.createUGCItem not available");
+        }
+        return window.WavedashJS.createUGCItem(ugcType, title, description, visibility, filePath);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_DownloadUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_DownloadUGCItem: function (ugcIdPtr, localFilePathPtr, callbackPtr, requestIdPtr) {
+    var ugcId = UTF8ToString(ugcIdPtr);
+    var localFilePath = UTF8ToString(localFilePathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { ugcId, localFilePath };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.downloadUGCItem) {
+          return Promise.reject("WavedashJS.downloadUGCItem not available");
+        }
+        return window.WavedashJS.downloadUGCItem(ugcId, localFilePath);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
 });
