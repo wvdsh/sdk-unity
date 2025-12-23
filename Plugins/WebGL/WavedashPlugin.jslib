@@ -393,4 +393,111 @@ mergeInto(LibraryManager.library, {
       args
     );
   },
+
+  WavedashJS_CreateLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_CreateLobby: function (lobbyType, maxPlayers, callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    // maxPlayers can be <= 0 to indicate null/undefined
+    var mp = maxPlayers > 0 ? maxPlayers : undefined;
+
+    var args = { lobbyType: lobbyType, maxPlayers: mp };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createLobby) {
+          return Promise.reject("WavedashJS.createLobby not available");
+        }
+        return window.WavedashJS.createLobby(lobbyType, mp);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_JoinLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_JoinLobby: function (lobbyIdPtr, callbackPtr, requestIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { lobbyId: lobbyId };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.joinLobby) {
+          return Promise.reject("WavedashJS.joinLobby not available");
+        }
+        return window.WavedashJS.joinLobby(lobbyId);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_LeaveLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_LeaveLobby: function (lobbyIdPtr, callbackPtr, requestIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { lobbyId: lobbyId };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.leaveLobby) {
+          return Promise.reject("WavedashJS.leaveLobby not available");
+        }
+        return window.WavedashJS.leaveLobby(lobbyId);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_ListAvailableLobbies__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListAvailableLobbies: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+    var args = {};
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.listAvailableLobbies) {
+          return Promise.reject("WavedashJS.listAvailableLobbies not available");
+        }
+        return window.WavedashJS.listAvailableLobbies();
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_BroadcastP2PMessage__deps: ['$WVD_Helpers', '$AllocUTF8'],
+  WavedashJS_BroadcastP2PMessage: function (appChannel, reliable, payloadPtr, payloadLength) {
+    if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.broadcastP2PMessage) {
+      // payloadPtr points to a C# byte array (pinned or marshalled).
+      // We need to copy it to a JS Uint8Array to pass to the SDK.
+      var payload = new Uint8Array(HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength));
+      var isReliable = reliable !== 0;
+      return window.WavedashJS.broadcastP2PMessage(appChannel, isReliable, payload) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_SendP2PMessage__deps: ['$WVD_Helpers', '$AllocUTF8'],
+  WavedashJS_SendP2PMessage: function (targetUserIdPtr, appChannel, reliable, payloadPtr, payloadLength) {
+    var targetUserId = UTF8ToString(targetUserIdPtr);
+    if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.sendP2PMessage) {
+      var payload = new Uint8Array(HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength));
+      var isReliable = reliable !== 0;
+      return window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload) ? 1 : 0;
+    }
+    return 0;
+  },
 });
