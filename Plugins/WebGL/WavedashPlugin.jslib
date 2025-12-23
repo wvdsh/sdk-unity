@@ -481,9 +481,9 @@ mergeInto(LibraryManager.library, {
   WavedashJS_BroadcastP2PMessage__deps: ['$WVD_Helpers', '$AllocUTF8'],
   WavedashJS_BroadcastP2PMessage: function (appChannel, reliable, payloadPtr, payloadLength) {
     if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.broadcastP2PMessage) {
-      // payloadPtr points to a C# byte array (pinned or marshalled).
-      // We need to copy it to a JS Uint8Array to pass to the SDK.
-      var payload = new Uint8Array(HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength));
+      // Zero-copy view: safe because broadcastP2PMessage is synchronous and
+      // operates entirely in JS heap (no Emscripten heap allocations).
+      var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
       var isReliable = reliable !== 0;
       return window.WavedashJS.broadcastP2PMessage(appChannel, isReliable, payload) ? 1 : 0;
     }
@@ -494,7 +494,9 @@ mergeInto(LibraryManager.library, {
   WavedashJS_SendP2PMessage: function (targetUserIdPtr, appChannel, reliable, payloadPtr, payloadLength) {
     var targetUserId = UTF8ToString(targetUserIdPtr);
     if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.sendP2PMessage) {
-      var payload = new Uint8Array(HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength));
+      // Zero-copy view: safe because sendP2PMessage is synchronous and
+      // operates entirely in JS heap (no Emscripten heap allocations).
+      var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
       var isReliable = reliable !== 0;
       return window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload) ? 1 : 0;
     }
