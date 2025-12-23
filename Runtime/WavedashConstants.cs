@@ -15,11 +15,4 @@ public static class WavedashConstants
     public const int FRIENDS_ONLY = 1;
     public const int PRIVATE = 2;
   }
-
-  public static class LobbyType
-  {
-    public const int PUBLIC = 0;
-    public const int FRIENDS_ONLY = 1;
-    public const int PRIVATE = 2;
-  }
 }
