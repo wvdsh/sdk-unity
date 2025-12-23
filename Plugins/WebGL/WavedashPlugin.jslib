@@ -478,7 +478,6 @@ mergeInto(LibraryManager.library, {
     );
   },
 
-  WavedashJS_BroadcastP2PMessage__deps: ['$WVD_Helpers', '$AllocUTF8'],
   WavedashJS_BroadcastP2PMessage: function (appChannel, reliable, payloadPtr, payloadLength) {
     if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.broadcastP2PMessage) {
       // Zero-copy view: safe because broadcastP2PMessage is synchronous and
@@ -490,7 +489,6 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
-  WavedashJS_SendP2PMessage__deps: ['$WVD_Helpers', '$AllocUTF8'],
   WavedashJS_SendP2PMessage: function (targetUserIdPtr, appChannel, reliable, payloadPtr, payloadLength) {
     var targetUserId = UTF8ToString(targetUserIdPtr);
     if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.sendP2PMessage) {
