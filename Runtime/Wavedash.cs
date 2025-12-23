@@ -507,7 +507,7 @@ namespace Wavedash
                 }
 
                 var dataToken = resp["data"];
-                
+
                 if (!SetResultIfMatch<Dictionary<string, object>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<string>(tcsObj, dataToken) &&
@@ -554,37 +554,37 @@ namespace Wavedash
         {
             public void LobbyJoined(string dataJson)
             {
-                if (_debug) Debug.Log("OnLobbyJoined: " + dataJson);
+                if (_debug) Debug.Log("LobbyJoined Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnLobbyJoined);
             }
 
             public void LobbyLeft(string dataJson)
             {
-                if (_debug) Debug.Log("OnLobbyLeft: " + dataJson);
+                if (_debug) Debug.Log("LobbyLeft Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnLobbyLeft);
             }
 
             public void LobbyMessage(string dataJson)
             {
-                if (_debug) Debug.Log("OnLobbyMessage: " + dataJson);
+                if (_debug) Debug.Log("LobbyMessage Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnLobbyMessage);
             }
 
             public void P2PConnectionEstablished(string dataJson)
             {
-                if (_debug) Debug.Log("OnP2PConnectionEstablished: " + dataJson);
+                if (_debug) Debug.Log("P2PConnectionEstablished Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnP2PConnectionEstablished);
             }
 
             public void P2PConnectionFailed(string dataJson)
             {
-                if (_debug) Debug.Log("OnP2PConnectionFailed: " + dataJson);
+                if (_debug) Debug.Log("P2PConnectionFailed Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnP2PConnectionFailed);
             }
 
             public void P2PPeerDisconnected(string dataJson)
             {
-                if (_debug) Debug.Log("OnP2PPeerDisconnected: " + dataJson);
+                if (_debug) Debug.Log("P2PPeerDisconnected Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnP2PPeerDisconnected);
             }
 
