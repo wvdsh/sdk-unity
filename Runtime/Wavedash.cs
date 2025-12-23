@@ -18,6 +18,9 @@ namespace Wavedash
         public static event Action<Dictionary<string, object>> OnLobbyJoined;
         public static event Action<Dictionary<string, object>> OnLobbyLeft;
         public static event Action<Dictionary<string, object>> OnLobbyMessage;
+        public static event Action<Dictionary<string, object>> OnP2PConnectionEstablished;
+        public static event Action<Dictionary<string, object>> OnP2PConnectionFailed;
+        public static event Action<Dictionary<string, object>> OnP2PPeerDisconnected;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -44,6 +47,46 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
+
+        // Lobby Functions
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_CreateLobby(
+            int lobbyType,
+            int maxPlayers,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_JoinLobby(
+            string lobbyId,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_LeaveLobby(
+            string lobbyId,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListAvailableLobbies(
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_BroadcastP2PMessage(
+            int appChannel,
+            bool reliable,
+            byte[] payload,
+            int payloadLength);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_SendP2PMessage(
+            string targetUserId,
+            int appChannel,
+            bool reliable,
+            byte[] payload,
+            int payloadLength);
 
         // Leaderboard Functions
         [DllImport("__Internal")]
@@ -204,6 +247,64 @@ namespace Wavedash
             _pending.Remove(requestId);
 #endif
             return tcs.Task;
+        }
+
+        // ===========
+        // Lobby
+        // ===========
+        public static Task<string> CreateLobby(int lobbyType, int maxPlayers = 0) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
+#else
+            Task.FromResult<string>(null);
+#endif
+
+        public static Task<string> JoinLobby(string lobbyId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_JoinLobby(lobbyId, fnPtr, requestId));
+#else
+            Task.FromResult<string>(null);
+#endif
+
+        public static Task<string> LeaveLobby(string lobbyId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_LeaveLobby(lobbyId, fnPtr, requestId));
+#else
+            Task.FromResult<string>(null);
+#endif
+
+        public static Task<List<Dictionary<string, object>>> ListAvailableLobbies() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_ListAvailableLobbies(fnPtr, requestId));
+#else
+            Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
+
+        // ===========
+        // P2P Messaging
+        // ===========
+        public static bool BroadcastP2PMessage(byte[] payload, int channel = 0, bool reliable = true)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (payload == null || payload.Length == 0) return false;
+            return WavedashJS_BroadcastP2PMessage(channel, reliable, payload, payload.Length) == 1;
+#else
+            return false;
+#endif
+        }
+
+        public static bool SendP2PMessage(string targetUserId, byte[] payload, int channel = 0, bool reliable = true)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (string.IsNullOrEmpty(targetUserId) || payload == null || payload.Length == 0) return false;
+            return WavedashJS_SendP2PMessage(targetUserId, channel, reliable, payload, payload.Length) == 1;
+#else
+            return false;
+#endif
         }
 
         // ===========
@@ -406,7 +507,11 @@ namespace Wavedash
                 }
 
                 var dataToken = resp["data"];
-
+                
+                // If dataToken is a string, and we expect a Dictionary<string, object>, we might need to parse it?
+                // Or maybe the caller expects a string?
+                // In the case of CreateLobby, data is just the Lobby ID (string).
+                
                 if (!SetResultIfMatch<Dictionary<string, object>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<string>(tcsObj, dataToken) &&
@@ -451,22 +556,40 @@ namespace Wavedash
 
         private class WavedashCallbackReceiver : MonoBehaviour
         {
-            public void OnLobbyJoinedCallback(string dataJson)
+            public void LobbyJoined(string dataJson)
             {
                 if (_debug) Debug.Log("OnLobbyJoined: " + dataJson);
                 TryInvoke(dataJson, OnLobbyJoined);
             }
 
-            public void OnLobbyLeftCallback(string dataJson)
+            public void LobbyLeft(string dataJson)
             {
                 if (_debug) Debug.Log("OnLobbyLeft: " + dataJson);
                 TryInvoke(dataJson, OnLobbyLeft);
             }
 
-            public void OnLobbyMessageCallback(string dataJson)
+            public void LobbyMessage(string dataJson)
             {
                 if (_debug) Debug.Log("OnLobbyMessage: " + dataJson);
                 TryInvoke(dataJson, OnLobbyMessage);
+            }
+
+            public void P2PConnectionEstablished(string dataJson)
+            {
+                if (_debug) Debug.Log("OnP2PConnectionEstablished: " + dataJson);
+                TryInvoke(dataJson, OnP2PConnectionEstablished);
+            }
+
+            public void P2PConnectionFailed(string dataJson)
+            {
+                if (_debug) Debug.Log("OnP2PConnectionFailed: " + dataJson);
+                TryInvoke(dataJson, OnP2PConnectionFailed);
+            }
+
+            public void P2PPeerDisconnected(string dataJson)
+            {
+                if (_debug) Debug.Log("OnP2PPeerDisconnected: " + dataJson);
+                TryInvoke(dataJson, OnP2PPeerDisconnected);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)
