@@ -508,10 +508,6 @@ namespace Wavedash
 
                 var dataToken = resp["data"];
                 
-                // If dataToken is a string, and we expect a Dictionary<string, object>, we might need to parse it?
-                // Or maybe the caller expects a string?
-                // In the case of CreateLobby, data is just the Lobby ID (string).
-                
                 if (!SetResultIfMatch<Dictionary<string, object>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<string>(tcsObj, dataToken) &&
