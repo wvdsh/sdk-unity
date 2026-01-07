@@ -500,4 +500,86 @@ mergeInto(LibraryManager.library, {
     }
     return 0;
   },
+
+  WavedashJS_ReadP2PMessage: function (appChannel, bufferPtr, bufferSize, senderIdBufferPtr, senderIdBufferSize) {
+    if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.readP2PMessageFromChannel) {
+      return -1;
+    }
+
+    // Returns Uint8Array (data) or null when called from engine
+    var rawMsg = window.WavedashJS.readP2PMessageFromChannel(appChannel);
+    if (!rawMsg || rawMsg.byteLength === 0) {
+      return 0; 
+    }
+
+    // Binary format: [fromUserId(32)][channel(4)][dataLength(4)][payload(...)]
+    var HEADER_SIZE = 40;
+    var USERID_SIZE = 32;
+    var CHANNEL_SIZE = 4;
+    var DATALENGTH_SIZE = 4;
+    var PAYLOAD_OFFSET = 40;
+
+    if (rawMsg.byteLength < HEADER_SIZE) {
+      console.error("[Wavedash] Received P2P message too short: " + rawMsg.byteLength);
+      return -3;
+    }
+
+    // Parse Data Length
+    var view = new DataView(rawMsg.buffer, rawMsg.byteOffset, rawMsg.byteLength);
+    // dataLength is at offset 36 (32 + 4)
+    var dataLength = view.getUint32(USERID_SIZE + CHANNEL_SIZE, true);
+
+    // Validate payload length
+    if (dataLength > rawMsg.byteLength - PAYLOAD_OFFSET) {
+        console.error("[Wavedash] P2P message truncated. Expected " + dataLength + " bytes, got " + (rawMsg.byteLength - PAYLOAD_OFFSET));
+        return -4;
+    }
+
+    // Check buffer size
+    if (dataLength > bufferSize) {
+      console.error("[Wavedash] Buffer too small for message: " + dataLength + " > " + bufferSize);
+      return -2;
+    }
+
+    // Copy Payload
+    var payloadView = rawMsg.subarray(PAYLOAD_OFFSET, PAYLOAD_OFFSET + dataLength);
+    HEAPU8.set(payloadView, bufferPtr);
+
+    // Copy Sender ID
+    // Extract UTF-8 bytes from the fixed 32-byte block, stripping null padding
+    var userIdBytes = rawMsg.subarray(0, USERID_SIZE);
+    var nullIndex = -1;
+    for (var i = 0; i < userIdBytes.length; i++) {
+        if (userIdBytes[i] === 0) {
+            nullIndex = i;
+            break;
+        }
+    }
+    var actualUserIdBytes = (nullIndex >= 0) ? userIdBytes.subarray(0, nullIndex) : userIdBytes;
+    
+    // Check if ID buffer is large enough (add 1 for null terminator that stringToUTF8 might expect/add in some contexts, but HEAPU8 set doesn't add it)
+    // We just write raw bytes + null terminator manually to be safe
+    if (actualUserIdBytes.length + 1 > senderIdBufferSize) {
+        console.warn("[Wavedash] Sender ID buffer too small");
+    } else {
+        HEAPU8.set(actualUserIdBytes, senderIdBufferPtr);
+        HEAPU8[senderIdBufferPtr + actualUserIdBytes.length] = 0; // Null terminate
+    }
+
+    return dataLength;
+  },
+
+  WavedashJS_GetLobbyHostId__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyHostId: function (lobbyIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyHostId === 'function') {
+      var hostId = window.WavedashJS.getLobbyHostId(lobbyId);
+      if (hostId) {
+        return AllocUTF8(hostId);
+      }
+    }
+    return 0;
+  },
 });
