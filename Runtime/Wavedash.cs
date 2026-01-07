@@ -74,6 +74,9 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
+        private static extern string WavedashJS_GetLobbyHostId(string lobbyId);
+
+        [DllImport("__Internal")]
         private static extern int WavedashJS_BroadcastP2PMessage(
             int appChannel,
             bool reliable,
@@ -87,6 +90,15 @@ namespace Wavedash
             bool reliable,
             byte[] payload,
             int payloadLength);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_ReadP2PMessage(
+            int appChannel,
+            byte[] buffer,
+            int bufferSize,
+            byte[] senderIdBuffer,
+            int senderIdBufferSize
+        );
 
         // Leaderboard Functions
         [DllImport("__Internal")]
@@ -252,13 +264,27 @@ namespace Wavedash
         // ===========
         // Lobby
         // ===========
-        public static Task<string> CreateLobby(int lobbyType, int maxPlayers = 0) =>
+        public static async Task<string> CreateLobby(int lobbyType, int maxPlayers = 0)
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            InvokeJs<string>((fnPtr, requestId) =>
+            string lobbyId = await InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
+
+            if (!string.IsNullOrEmpty(lobbyId))
+            {
+                var eventData = new Dictionary<string, object>
+                {
+                    { "success", true },
+                    { "data", lobbyId }
+                };
+                OnLobbyJoined?.Invoke(eventData);
+            }
+
+            return lobbyId;
 #else
-            Task.FromResult<string>(null);
+            return await Task.FromResult<string>(null);
 #endif
+        }
 
         public static Task<string> JoinLobby(string lobbyId) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -284,6 +310,15 @@ namespace Wavedash
             Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
 
+        public static string GetLobbyHostId(string lobbyId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLobbyHostId(lobbyId);
+#else
+            return null;
+#endif
+        }
+
         // ===========
         // P2P Messaging
         // ===========
@@ -304,6 +339,15 @@ namespace Wavedash
             return WavedashJS_SendP2PMessage(targetUserId, channel, reliable, payload, payload.Length) == 1;
 #else
             return false;
+#endif
+        }
+
+        public static int ReadP2PMessage(int channel, byte[] buffer, byte[] senderIdBuffer)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_ReadP2PMessage(channel, buffer, buffer.Length, senderIdBuffer, senderIdBuffer.Length);
+#else
+            return 0;
 #endif
         }
 
@@ -568,6 +612,16 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("LobbyMessage Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnLobbyMessage);
+            }
+
+            public void LobbyDataUpdated(string dataJson)
+            {
+                if (_debug) Debug.Log("LobbyDataUpdated Signal Received from WavedashJS: " + dataJson);
+            }
+
+            public void LobbyUsersUpdated(string dataJson)
+            {
+                if (_debug) Debug.Log("LobbyUsersUpdated Signal Received from WavedashJS: " + dataJson);
             }
 
             public void P2PConnectionEstablished(string dataJson)
