@@ -397,8 +397,8 @@ namespace Wavedash
                     | (_p2pDrainBuffer[readOffset + 3] << 24);
                 readOffset += P2P_SLOT_HEADER_SIZE;
 
-                // Validate message fits in remaining buffer
-                if (readOffset + messageLength > bytesWritten)
+                // Validate message length is sane and fits in remaining buffer
+                if (messageLength <= 0 || readOffset + messageLength > bytesWritten)
                 {
                     Debug.LogWarning($"[Wavedash] P2P message exceeds buffer: {readOffset + messageLength} > {bytesWritten}");
                     break;
@@ -461,7 +461,7 @@ namespace Wavedash
 
             // Validate payload length
             int payloadOffset = offset + P2P_HEADER_SIZE;
-            if (dataLength > length - P2P_HEADER_SIZE)
+            if (dataLength < 0 || dataLength > length - P2P_HEADER_SIZE)
             {
                 Debug.LogWarning($"[Wavedash] P2P payload length mismatch: {dataLength} > {length - P2P_HEADER_SIZE}");
                 return null;
