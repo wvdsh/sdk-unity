@@ -337,6 +337,12 @@ namespace Wavedash
         private const int P2P_HEADER_SIZE = P2P_USERID_SIZE + P2P_CHANNEL_SIZE + P2P_DATALENGTH_SIZE; // 40 bytes
         private const int P2P_SLOT_HEADER_SIZE = 4; // 4-byte length prefix per message slot
 
+        // Internal buffer for receiving drained P2P messages
+        // 64KB handles ~31 max-size (2048 byte) messages per drain call
+        // If more messages are queued, they remain in the JS queue for the next drain
+        private const int P2P_DRAIN_BUFFER_SIZE = 64 * 1024;
+        private static byte[] _p2pDrainBuffer;
+
         public static bool BroadcastP2PMessage(byte[] payload, int channel = 0, bool reliable = true)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -358,22 +364,25 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Drains all P2P messages from a channel into the provided buffer and decodes them.
-        /// Buffer format from JS: [size:4][message:N][size:4][message:N]...
-        /// Message format: [fromUserId:32][channel:4][dataLength:4][payload:variable]
+        /// Drains P2P messages from a channel into the provided list.
+        /// If more messages are queued than fit in the internal buffer, remaining messages
+        /// stay in the JS queue and will be returned on the next call.
         /// </summary>
         /// <param name="channel">The P2P channel to drain</param>
-        /// <param name="buffer">Reusable buffer to receive raw message data</param>
         /// <param name="messages">List to populate with decoded messages (will be cleared first)</param>
         /// <returns>Number of messages decoded, or -1 on error</returns>
-        public static int DrainP2PChannel(int channel, byte[] buffer, List<P2PMessage> messages)
+        public static int DrainP2PChannel(int channel, List<P2PMessage> messages)
         {
             messages.Clear();
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (buffer == null || buffer.Length == 0) return -1;
+            // Lazy-allocate the drain buffer
+            if (_p2pDrainBuffer == null)
+            {
+                _p2pDrainBuffer = new byte[P2P_DRAIN_BUFFER_SIZE];
+            }
 
-            int bytesWritten = WavedashJS_DrainP2PChannelToBuffer(channel, buffer, buffer.Length);
+            int bytesWritten = WavedashJS_DrainP2PChannelToBuffer(channel, _p2pDrainBuffer, _p2pDrainBuffer.Length);
             if (bytesWritten <= 0) return bytesWritten;
 
             // Decode messages from buffer
@@ -382,10 +391,10 @@ namespace Wavedash
             while (readOffset + P2P_SLOT_HEADER_SIZE <= bytesWritten)
             {
                 // Read message length (little-endian uint32)
-                int messageLength = buffer[readOffset]
-                    | (buffer[readOffset + 1] << 8)
-                    | (buffer[readOffset + 2] << 16)
-                    | (buffer[readOffset + 3] << 24);
+                int messageLength = _p2pDrainBuffer[readOffset]
+                    | (_p2pDrainBuffer[readOffset + 1] << 8)
+                    | (_p2pDrainBuffer[readOffset + 2] << 16)
+                    | (_p2pDrainBuffer[readOffset + 3] << 24);
                 readOffset += P2P_SLOT_HEADER_SIZE;
 
                 // Validate message fits in remaining buffer
@@ -396,7 +405,7 @@ namespace Wavedash
                 }
 
                 // Decode the message
-                var decoded = DecodeP2PPacket(buffer, readOffset, messageLength);
+                var decoded = DecodeP2PPacket(_p2pDrainBuffer, readOffset, messageLength);
                 if (decoded.HasValue)
                 {
                     messages.Add(decoded.Value);
