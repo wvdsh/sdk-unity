@@ -468,17 +468,18 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_ListAvailableLobbies__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_ListAvailableLobbies: function (callbackPtr, requestIdPtr) {
+  WavedashJS_ListAvailableLobbies: function (friendsOnly, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
-    var args = {};
+    var friendsOnlyBool = friendsOnly !== 0;
+    var args = { friendsOnly: friendsOnlyBool };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.listAvailableLobbies) {
           return Promise.reject("WavedashJS.listAvailableLobbies not available");
         }
-        return window.WavedashJS.listAvailableLobbies();
+        return window.WavedashJS.listAvailableLobbies(friendsOnlyBool);
       },
       cb,
       requestId,
