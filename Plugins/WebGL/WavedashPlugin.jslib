@@ -496,7 +496,39 @@ mergeInto(LibraryManager.library, {
       // operates entirely in JS heap (no Emscripten heap allocations).
       var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
       var isReliable = reliable !== 0;
-      return window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload) ? 1 : 0;
+      return window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload, payloadLength) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_DrainP2PChannelToBuffer: function (appChannel, bufferPtr, bufferSize) {
+    if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.drainP2PChannelToBuffer) {
+      return -1;
+    }
+
+    // Create a view into the Unity heap buffer
+    var unityBuffer = HEAPU8.subarray(bufferPtr, bufferPtr + bufferSize);
+
+    // Call drainP2PChannelToBuffer with the Unity buffer
+    // JS SDK fills the buffer and returns a subarray of what was written
+    var result = window.WavedashJS.drainP2PChannelToBuffer(appChannel, unityBuffer);
+
+    // Result is a Uint8Array subarray of what was written
+    // Since we passed our buffer, it wrote directly into HEAPU8
+    // Return the number of bytes written
+    return result ? result.byteLength : 0;
+  },
+
+  WavedashJS_GetLobbyHostId__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyHostId: function (lobbyIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyHostId === 'function') {
+      var hostId = window.WavedashJS.getLobbyHostId(lobbyId);
+      if (hostId) {
+        return AllocUTF8(hostId);
+      }
     }
     return 0;
   },
