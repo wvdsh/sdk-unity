@@ -74,6 +74,14 @@ mergeInto(LibraryManager.library, {
     }
   },
 
+  WavedashJS_ReadyForEvents: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.readyForEvents === 'function') {
+      window.WavedashJS.readyForEvents();
+    }
+  },
+
   WavedashJS_IsReady: function () {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&

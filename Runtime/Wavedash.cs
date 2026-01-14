@@ -53,6 +53,9 @@ namespace Wavedash
         private static extern void WavedashJS_BindFS();
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_ReadyForEvents();
+
+        [DllImport("__Internal")]
         private static extern int WavedashJS_IsReady();
 
         [DllImport("__Internal")]
@@ -218,6 +221,17 @@ namespace Wavedash
             WavedashJS_BindFS();
 #else
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
+#endif
+        }
+
+        /// <summary>
+        /// Signals to WavedashJS that Unity is ready to receive events.
+        /// Call this after subscribing to all desired event handlers.
+        /// </summary>
+        public static void ReadyForEvents()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WavedashJS_ReadyForEvents();
 #endif
         }
 
