@@ -1,9 +1,9 @@
 {
-  "name": "gg.wavedash.sdk",
-  "version": "0.1.0",
+  "name": "com.wavedash.sdk",
+  "version": "1.0.0",
   "displayName": "Wavedash SDK",
   "description": "Unity SDK for integrating Wavedash services in WebGL builds. Provides seamless JavaScript interop for Unity games exported to WebGL/WASM to communicate with the Wavedash JS SDK.",
-  "unity": "2021.3",
+  "unity": "6000.0",
   "unityRelease": "0f1",
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.0.2"
@@ -19,8 +19,8 @@
   ],
   "author": {
     "name": "Wavedash",
-    "email": "support@wavedash.gg",
-    "url": "https://wavedash.gg"
+    "email": "support@wavedash.com",
+    "url": "https://wavedash.com"
   },
   "type": "library",
   "hideInEditor": false

@@ -16,7 +16,6 @@ public class WavedashExample : MonoBehaviour
         // Initialize Wavedash with your configuration
         var config = new Dictionary<string, object>
         {
-            { "gameId", "hello-world" },
             { "debug", true }
         };
         
