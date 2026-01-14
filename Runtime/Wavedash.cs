@@ -284,7 +284,6 @@ namespace Wavedash
                     { "success", true },
                     { "data", lobbyId }
                 };
-                OnLobbyJoined?.Invoke(eventData);
             }
 
             return lobbyId;
