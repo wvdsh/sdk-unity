@@ -8,6 +8,7 @@
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.0.2"
   },
+  "documentationUrl": "https://docs.wavedash.com",
   "keywords": [
     "wavedash",
     "sdk",
