@@ -5,8 +5,8 @@ A Unity package for WebGL builds to interact with the WavedashJS SDK in the brow
 ## Installation
 
 1. In Unity, open Window → Package Manager
-2. Click the + button → Add package from disk...
-3. Select the `package.json` file from this repository
+2. Click the + button → Install package from git URL...
+3. Enter https://github.com/wvdsh/sdk-unity.git and install
 
 ## Quick Start
 
