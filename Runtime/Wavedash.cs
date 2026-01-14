@@ -9,6 +9,16 @@ using UnityEngine;
 namespace Wavedash
 {
     /// <summary>
+    /// Represents a decoded P2P message
+    /// </summary>
+    public struct P2PMessage
+    {
+        public string SenderId;
+        public int Channel;
+        public byte[] Payload;
+    }
+
+    /// <summary>
     /// Main entry point for the Wavedash SDK
     /// Usage: await SDK.GetLeaderboard("name"); etc.
     /// </summary>
@@ -74,6 +84,9 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
+        private static extern string WavedashJS_GetLobbyHostId(string lobbyId);
+
+        [DllImport("__Internal")]
         private static extern int WavedashJS_BroadcastP2PMessage(
             int appChannel,
             bool reliable,
@@ -87,6 +100,12 @@ namespace Wavedash
             bool reliable,
             byte[] payload,
             int payloadLength);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_DrainP2PChannelToBuffer(
+            int appChannel,
+            byte[] buffer,
+            int bufferSize);
 
         // Leaderboard Functions
         [DllImport("__Internal")]
@@ -252,13 +271,27 @@ namespace Wavedash
         // ===========
         // Lobby
         // ===========
-        public static Task<string> CreateLobby(int lobbyType, int maxPlayers = 0) =>
+        public static async Task<string> CreateLobby(int lobbyType, int maxPlayers = 0)
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            InvokeJs<string>((fnPtr, requestId) =>
+            string lobbyId = await InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
+
+            if (!string.IsNullOrEmpty(lobbyId))
+            {
+                var eventData = new Dictionary<string, object>
+                {
+                    { "success", true },
+                    { "data", lobbyId }
+                };
+                OnLobbyJoined?.Invoke(eventData);
+            }
+
+            return lobbyId;
 #else
-            Task.FromResult<string>(null);
+            return await Task.FromResult<string>(null);
 #endif
+        }
 
         public static Task<string> JoinLobby(string lobbyId) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -284,9 +317,32 @@ namespace Wavedash
             Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
 
+        public static string GetLobbyHostId(string lobbyId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLobbyHostId(lobbyId);
+#else
+            return null;
+#endif
+        }
+
         // ===========
         // P2P Messaging
         // ===========
+
+        // P2P packet header constants
+        private const int P2P_USERID_SIZE = 32;
+        private const int P2P_CHANNEL_SIZE = 4;
+        private const int P2P_DATALENGTH_SIZE = 4;
+        private const int P2P_HEADER_SIZE = P2P_USERID_SIZE + P2P_CHANNEL_SIZE + P2P_DATALENGTH_SIZE; // 40 bytes
+        private const int P2P_SLOT_HEADER_SIZE = 4; // 4-byte length prefix per message slot
+
+        // Internal buffer for receiving drained P2P messages
+        // 64KB handles ~31 max-size (2048 byte) messages per drain call
+        // If more messages are queued, they remain in the JS queue for the next drain
+        private const int P2P_DRAIN_BUFFER_SIZE = 64 * 1024;
+        private static byte[] _p2pDrainBuffer;
+
         public static bool BroadcastP2PMessage(byte[] payload, int channel = 0, bool reliable = true)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -305,6 +361,125 @@ namespace Wavedash
 #else
             return false;
 #endif
+        }
+
+        /// <summary>
+        /// Drains P2P messages from a channel into the provided list.
+        /// If more messages are queued than fit in the internal buffer, remaining messages
+        /// stay in the JS queue and will be returned on the next call.
+        /// </summary>
+        /// <param name="channel">The P2P channel to drain</param>
+        /// <param name="messages">List to populate with decoded messages (will be cleared first)</param>
+        /// <returns>Number of messages decoded, or -1 on error</returns>
+        public static int DrainP2PChannel(int channel, List<P2PMessage> messages)
+        {
+            messages.Clear();
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // Lazy-allocate the drain buffer
+            if (_p2pDrainBuffer == null)
+            {
+                _p2pDrainBuffer = new byte[P2P_DRAIN_BUFFER_SIZE];
+            }
+
+            int bytesWritten = WavedashJS_DrainP2PChannelToBuffer(channel, _p2pDrainBuffer, _p2pDrainBuffer.Length);
+            if (bytesWritten <= 0) return bytesWritten;
+
+            // Decode messages from buffer
+            // Format: [size:4][message:N][size:4][message:N]...
+            int readOffset = 0;
+            while (readOffset + P2P_SLOT_HEADER_SIZE <= bytesWritten)
+            {
+                // Read message length (little-endian uint32)
+                int messageLength = _p2pDrainBuffer[readOffset]
+                    | (_p2pDrainBuffer[readOffset + 1] << 8)
+                    | (_p2pDrainBuffer[readOffset + 2] << 16)
+                    | (_p2pDrainBuffer[readOffset + 3] << 24);
+                readOffset += P2P_SLOT_HEADER_SIZE;
+
+                // Validate message length is sane and fits in remaining buffer
+                if (messageLength <= 0 || readOffset + messageLength > bytesWritten)
+                {
+                    Debug.LogWarning($"[Wavedash] P2P message exceeds buffer: {readOffset + messageLength} > {bytesWritten}");
+                    break;
+                }
+
+                // Decode the message
+                var decoded = DecodeP2PPacket(_p2pDrainBuffer, readOffset, messageLength);
+                if (decoded.HasValue)
+                {
+                    messages.Add(decoded.Value);
+                }
+                else
+                {
+                    Debug.LogWarning("[Wavedash] Failed to decode P2P packet");
+                }
+
+                readOffset += messageLength;
+            }
+
+            return messages.Count;
+#else
+            return 0;
+#endif
+        }
+
+        /// <summary>
+        /// Decodes a single P2P packet from the buffer.
+        /// Format: [fromUserId:32][channel:4][dataLength:4][payload:variable]
+        /// </summary>
+        private static P2PMessage? DecodeP2PPacket(byte[] buffer, int offset, int length)
+        {
+            if (length < P2P_HEADER_SIZE) return null;
+
+            // Extract fromUserId (32 bytes, null-padded ASCII)
+            int nullIndex = -1;
+            for (int i = 0; i < P2P_USERID_SIZE; i++)
+            {
+                if (buffer[offset + i] == 0)
+                {
+                    nullIndex = i;
+                    break;
+                }
+            }
+            int userIdLength = nullIndex >= 0 ? nullIndex : P2P_USERID_SIZE;
+            string senderId = System.Text.Encoding.ASCII.GetString(buffer, offset, userIdLength);
+
+            // Extract channel (little-endian uint32 at offset 32)
+            int channelOffset = offset + P2P_USERID_SIZE;
+            int msgChannel = buffer[channelOffset]
+                | (buffer[channelOffset + 1] << 8)
+                | (buffer[channelOffset + 2] << 16)
+                | (buffer[channelOffset + 3] << 24);
+
+            // Extract dataLength (little-endian uint32 at offset 36)
+            int dataLengthOffset = offset + P2P_USERID_SIZE + P2P_CHANNEL_SIZE;
+            int dataLength = buffer[dataLengthOffset]
+                | (buffer[dataLengthOffset + 1] << 8)
+                | (buffer[dataLengthOffset + 2] << 16)
+                | (buffer[dataLengthOffset + 3] << 24);
+
+            // Validate payload length
+            int payloadOffset = offset + P2P_HEADER_SIZE;
+            if (dataLength < 0 || dataLength > length - P2P_HEADER_SIZE)
+            {
+                Debug.LogWarning($"[Wavedash] P2P payload length mismatch: {dataLength} > {length - P2P_HEADER_SIZE}");
+                return null;
+            }
+
+            // Copy payload
+            byte[] payload = new byte[dataLength];
+            if (dataLength > 0)
+            {
+                Array.Copy(buffer, payloadOffset, payload, 0, dataLength);
+            }
+
+            return new P2PMessage
+            {
+                SenderId = senderId,
+                Channel = msgChannel,
+                Payload = payload
+            };
         }
 
         // ===========
@@ -568,6 +743,16 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("LobbyMessage Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnLobbyMessage);
+            }
+
+            public void LobbyDataUpdated(string dataJson)
+            {
+                if (_debug) Debug.Log("LobbyDataUpdated Signal Received from WavedashJS: " + dataJson);
+            }
+
+            public void LobbyUsersUpdated(string dataJson)
+            {
+                if (_debug) Debug.Log("LobbyUsersUpdated Signal Received from WavedashJS: " + dataJson);
             }
 
             public void P2PConnectionEstablished(string dataJson)
