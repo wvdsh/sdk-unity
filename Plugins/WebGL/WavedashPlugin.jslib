@@ -60,17 +60,13 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.init === 'function') {
-      try { window.WavedashJS.init(JSON.parse(configJson)); }
+      try {
+        window.WavedashJS.init(JSON.parse(configJson));
+        // Attach FS to the engine instance so WavedashJS has access to emscripten file system.
+        // Turns out Unity games can start BEFORE window.createUnityInstance finishes.
+        window.WavedashJS.setEngineInstance({ type: "UNITY", FS: FS });
+      }
       catch (e) { console.error('Failed to parse WavedashJS config:', e); }
-    }
-  },
-
-  WavedashJS_BindFS: function () {
-    if (typeof window.WavedashJS !== "undefined" && window.WavedashJS.engineInstance) {
-      window.WavedashJS.engineInstance.FS = FS;
-      console.log("[Wavedash] FS binded to WavedashJS.engineInstance");
-    } else {
-      console.error("[Wavedash] WavedashJS.engineInstance not set");
     }
   },
 
