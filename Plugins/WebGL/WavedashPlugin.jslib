@@ -59,7 +59,8 @@ mergeInto(LibraryManager.library, {
     var configJson = UTF8ToString(configPtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
-        typeof window.WavedashJS.init === 'function') {
+        typeof window.WavedashJS.init === 'function' &&
+        typeof window.WavedashJS.setEngineInstance === 'function') {
       try {
         window.WavedashJS.init(JSON.parse(configJson));
         // Attach FS to the engine instance so WavedashJS has access to emscripten file system.

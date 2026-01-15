@@ -53,9 +53,6 @@ namespace Wavedash
         private static extern void WavedashJS_Init(string configJson);
 
         [DllImport("__Internal")]
-        private static extern void WavedashJS_BindFS();
-
-        [DllImport("__Internal")]
         private static extern void WavedashJS_ReadyForEvents();
 
         [DllImport("__Internal")]
