@@ -35,6 +35,9 @@ namespace Wavedash
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
         private static bool _debug = false;
+        
+        // Cached user data to avoid repeated JS calls
+        private static Dictionary<string, object> _cachedUser;
 
         // Pending TaskCompletionSources by requestId
         private static readonly Dictionary<string, object> _pending = new();
@@ -219,7 +222,6 @@ namespace Wavedash
 
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
-            WavedashJS_BindFS();
 #else
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
 #endif
@@ -245,15 +247,24 @@ namespace Wavedash
 #endif
         }
 
+        /// <summary>
+        /// Gets the current user data. Results are cached after the first call.
+        /// </summary>
         public static Dictionary<string, object> GetUser()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
+            if (_cachedUser != null)
+            {
+                return _cachedUser;
+            }
+            
             string userJson = WavedashJS_GetUser();
             if (!string.IsNullOrEmpty(userJson))
             {
                 try
                 {
-                    return JsonConvert.DeserializeObject<Dictionary<string, object>>(userJson);
+                    _cachedUser = JsonConvert.DeserializeObject<Dictionary<string, object>>(userJson);
+                    return _cachedUser;
                 }
                 catch (Exception e)
                 {
