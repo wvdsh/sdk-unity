@@ -294,28 +294,32 @@ namespace Wavedash
         // ===========
         // Lobby
         // ===========
-        public static async Task<string> CreateLobby(int lobbyType, int maxPlayers = 0)
-        {
+
+        /// <summary>
+        /// Creates a new lobby with the current user as the host.
+        /// </summary>
+        /// <param name="lobbyType">The type of lobby to create.</param>
+        /// <param name="maxPlayers">The maximum number of players in the lobby. If 0, the default max players for the lobby type will be used.</param>
+        /// <returns>The ID of the created lobby.</returns>
+        /// <remarks>
+        /// Triggers the <see cref="OnLobbyJoined"/> event upon success.
+        /// </remarks>
+        public static Task<string> CreateLobby(int lobbyType, int maxPlayers = 0) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
-            string lobbyId = await InvokeJs<string>((fnPtr, requestId) =>
+            InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
-
-            if (!string.IsNullOrEmpty(lobbyId))
-            {
-                var eventData = new Dictionary<string, object>
-                {
-                    { "success", true },
-                    { "data", lobbyId }
-                };
-                OnLobbyJoined?.Invoke(eventData);
-            }
-
-            return lobbyId;
 #else
-            return await Task.FromResult<string>(null);
+            Task.FromResult<string>(null);
 #endif
-        }
 
+        /// <summary>
+        /// Joins a lobby.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby to join.</param>
+        /// <returns>The ID of the joined lobby.</returns>
+        /// <remarks>
+        /// Triggers the <see cref="OnLobbyJoined"/> event upon success.
+        /// </remarks>
         public static Task<string> JoinLobby(string lobbyId) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<string>((fnPtr, requestId) =>
@@ -324,6 +328,11 @@ namespace Wavedash
             Task.FromResult<string>(null);
 #endif
 
+        /// <summary>
+        /// Leaves a lobby.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby to leave.</param>
+        /// <returns>The ID of the left lobby.</returns>
         public static Task<string> LeaveLobby(string lobbyId) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<string>((fnPtr, requestId) =>
