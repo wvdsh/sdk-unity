@@ -83,6 +83,7 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_ListAvailableLobbies(
+            bool friendsOnly,
             IntPtr callbackPtr,
             string requestId);
 
@@ -323,10 +324,14 @@ namespace Wavedash
             Task.FromResult<string>(null);
 #endif
 
-        public static Task<List<Dictionary<string, object>>> ListAvailableLobbies() =>
+        /// <summary>
+        /// Lists available lobbies that can be joined.
+        /// </summary>
+        /// <param name="friendsOnly">If true, only return lobbies with friends.</param>
+        public static Task<List<Dictionary<string, object>>> ListAvailableLobbies(bool friendsOnly = false) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
-                WavedashJS_ListAvailableLobbies(fnPtr, requestId));
+                WavedashJS_ListAvailableLobbies(friendsOnly, fnPtr, requestId));
 #else
             Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
