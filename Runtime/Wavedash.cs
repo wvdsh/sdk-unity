@@ -219,7 +219,6 @@ namespace Wavedash
 
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
-            WavedashJS_BindFS();
 #else
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
 #endif
