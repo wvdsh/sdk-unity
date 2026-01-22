@@ -25,12 +25,20 @@ namespace Wavedash
     public static class SDK
     {
         // Events that JavaScript can trigger
+        // Lobby events
         public static event Action<Dictionary<string, object>> OnLobbyJoined;
-        public static event Action<Dictionary<string, object>> OnLobbyLeft;
+        public static event Action<Dictionary<string, object>> OnLobbyKicked;
         public static event Action<Dictionary<string, object>> OnLobbyMessage;
+        public static event Action<Dictionary<string, object>> OnLobbyDataUpdated;
+        public static event Action<Dictionary<string, object>> OnLobbyUsersUpdated;
+        // P2P events
         public static event Action<Dictionary<string, object>> OnP2PConnectionEstablished;
         public static event Action<Dictionary<string, object>> OnP2PConnectionFailed;
         public static event Action<Dictionary<string, object>> OnP2PPeerDisconnected;
+        // Backend connection events
+        public static event Action<Dictionary<string, object>> OnBackendConnected;
+        public static event Action<Dictionary<string, object>> OnBackendDisconnected;
+        public static event Action<Dictionary<string, object>> OnBackendReconnecting;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -294,36 +302,42 @@ namespace Wavedash
         // ===========
         // Lobby
         // ===========
-        public static async Task<string> CreateLobby(int lobbyType, int maxPlayers = 0)
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            string lobbyId = await InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
 
-            if (!string.IsNullOrEmpty(lobbyId))
-            {
-                var eventData = new Dictionary<string, object>
-                {
-                    { "success", true },
-                    { "data", lobbyId }
-                };
-                OnLobbyJoined?.Invoke(eventData);
-            }
-
-            return lobbyId;
-#else
-            return await Task.FromResult<string>(null);
-#endif
-        }
-
-        public static Task<string> JoinLobby(string lobbyId) =>
+        /// <summary>
+        /// Creates a new lobby with the current user as the host.
+        /// Listen for <see cref="OnLobbyJoined"/> to receive the full lobby context (hostId, users, metadata).
+        /// </summary>
+        /// <param name="lobbyType">The visibility/type of lobby to create.</param>
+        /// <param name="maxPlayers">The maximum number of players in the lobby. If 0, the default max players will be used.</param>
+        /// <returns>The ID of the created lobby, or null on failure.</returns>
+        public static Task<string> CreateLobby(int lobbyType, int maxPlayers = 0) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_JoinLobby(lobbyId, fnPtr, requestId));
+                WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
 #else
             Task.FromResult<string>(null);
 #endif
 
+        /// <summary>
+        /// Joins an existing lobby.
+        /// Listen for <see cref="OnLobbyJoined"/> to receive the full lobby context (hostId, users, metadata).
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby to join.</param>
+        /// <returns>True if join was successful, false otherwise.</returns>
+        public static Task<bool> JoinLobby(string lobbyId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_JoinLobby(lobbyId, fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        /// <summary>
+        /// Leaves a lobby explicitly.
+        /// Note: If the user is kicked or disconnected, <see cref="OnLobbyKicked"/> will fire instead.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby to leave.</param>
+        /// <returns>The ID of the lobby that was left, or null on failure.</returns>
         public static Task<string> LeaveLobby(string lobbyId) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<string>((fnPtr, requestId) =>
@@ -704,6 +718,7 @@ namespace Wavedash
                     SetResultIfMatch<Dictionary<string, object>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<string>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
+                    SetResultIfMatch<bool>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<object>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     return;
                 }
@@ -713,6 +728,7 @@ namespace Wavedash
                 if (!SetResultIfMatch<Dictionary<string, object>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<string>(tcsObj, dataToken) &&
+                    !SetResultIfMatch<bool>(tcsObj, dataToken) &&
                     !SetResultIfMatch<object>(tcsObj, dataToken))
                 {
                     Debug.LogError($"Unexpected TaskCompletionSource type for request {reqId}");
@@ -760,10 +776,10 @@ namespace Wavedash
                 TryInvoke(dataJson, OnLobbyJoined);
             }
 
-            public void LobbyLeft(string dataJson)
+            public void LobbyKicked(string dataJson)
             {
-                if (_debug) Debug.Log("LobbyLeft Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnLobbyLeft);
+                if (_debug) Debug.Log("LobbyKicked Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnLobbyKicked);
             }
 
             public void LobbyMessage(string dataJson)
@@ -775,11 +791,13 @@ namespace Wavedash
             public void LobbyDataUpdated(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyDataUpdated Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnLobbyDataUpdated);
             }
 
             public void LobbyUsersUpdated(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyUsersUpdated Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnLobbyUsersUpdated);
             }
 
             public void P2PConnectionEstablished(string dataJson)
@@ -798,6 +816,24 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("P2PPeerDisconnected Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnP2PPeerDisconnected);
+            }
+
+            public void BackendConnected(string dataJson)
+            {
+                if (_debug) Debug.Log("BackendConnected Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnBackendConnected);
+            }
+
+            public void BackendDisconnected(string dataJson)
+            {
+                if (_debug) Debug.Log("BackendDisconnected Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnBackendDisconnected);
+            }
+
+            public void BackendReconnecting(string dataJson)
+            {
+                if (_debug) Debug.Log("BackendReconnecting Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnBackendReconnecting);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)
