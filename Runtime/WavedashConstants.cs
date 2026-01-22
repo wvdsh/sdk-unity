@@ -22,4 +22,10 @@ public static class WavedashConstants
     public const int FRIENDS_ONLY = 1;
     public const int PRIVATE = 2;
   }
+
+  public static class LobbyKickedReason
+  {
+    public const string KICKED = "KICKED";
+    public const string ERROR = "ERROR";
+  }
 }
