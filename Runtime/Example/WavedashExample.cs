@@ -8,7 +8,7 @@ public class WavedashExample : MonoBehaviour
     void Awake()
     {
         Wavedash.SDK.OnLobbyJoined += HandleLobbyJoined;
-        Wavedash.SDK.OnLobbyLeft += HandleLobbyLeft;
+        Wavedash.SDK.OnLobbyKicked += HandleLobbyKicked;
     }
 
     void Start()
@@ -43,7 +43,7 @@ public class WavedashExample : MonoBehaviour
     {
         // Unsubscribe from events when the GameObject is destroyed
         Wavedash.SDK.OnLobbyJoined -= HandleLobbyJoined;
-        Wavedash.SDK.OnLobbyLeft -= HandleLobbyLeft;
+        Wavedash.SDK.OnLobbyKicked -= HandleLobbyKicked;
     }
 
     void HandleLobbyJoined(Dictionary<string, object> lobbyData)
@@ -53,10 +53,10 @@ public class WavedashExample : MonoBehaviour
         Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 
-    void HandleLobbyLeft(Dictionary<string, object> lobbyData)
+    void HandleLobbyKicked(Dictionary<string, object> lobbyData)
     {
         string lobbyId = lobbyData["data"].ToString();
-        Debug.Log($"Left lobby: {lobbyId}");
+        Debug.Log($"Kicked from lobby: {lobbyId}");
         Debug.Log($"Lobby data: {JsonConvert.SerializeObject(lobbyData)}");
     }
 } 
