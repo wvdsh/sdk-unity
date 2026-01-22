@@ -718,6 +718,7 @@ namespace Wavedash
                     SetResultIfMatch<Dictionary<string, object>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<string>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
+                    SetResultIfMatch<bool>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<object>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     return;
                 }
@@ -727,6 +728,7 @@ namespace Wavedash
                 if (!SetResultIfMatch<Dictionary<string, object>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<string>(tcsObj, dataToken) &&
+                    !SetResultIfMatch<bool>(tcsObj, dataToken) &&
                     !SetResultIfMatch<object>(tcsObj, dataToken))
                 {
                     Debug.LogError($"Unexpected TaskCompletionSource type for request {reqId}");
