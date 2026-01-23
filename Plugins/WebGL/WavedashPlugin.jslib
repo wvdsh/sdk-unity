@@ -538,4 +538,193 @@ mergeInto(LibraryManager.library, {
     }
     return 0;
   },
+
+  WavedashJS_GetLobbyData__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyData: function (lobbyIdPtr, keyPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyData === 'function') {
+      var value = window.WavedashJS.getLobbyData(lobbyId, key);
+      if (value != null) {
+        return AllocUTF8(String(value));
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_SetLobbyData: function (lobbyIdPtr, keyPtr, valuePtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    var value = UTF8ToString(valuePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setLobbyData === 'function') {
+      return window.WavedashJS.setLobbyData(lobbyId, key, value) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_GetLobbyUsers__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyUsers: function (lobbyIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyUsers === 'function') {
+      var users = window.WavedashJS.getLobbyUsers(lobbyId);
+      if (users) {
+        return AllocUTF8(JSON.stringify(users));
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_GetNumLobbyUsers: function (lobbyIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getNumLobbyUsers === 'function') {
+      return window.WavedashJS.getNumLobbyUsers(lobbyId);
+    }
+    return 0;
+  },
+
+  WavedashJS_SendLobbyMessage: function (lobbyIdPtr, messagePtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var message = UTF8ToString(messagePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.sendLobbyMessage === 'function') {
+      return window.WavedashJS.sendLobbyMessage(lobbyId, message) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_ToggleOverlay: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.toggleOverlay === 'function') {
+      window.WavedashJS.toggleOverlay();
+    }
+  },
+
+  WavedashJS_GetUserId__deps: ['$AllocUTF8'],
+  WavedashJS_GetUserId: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getUserId === 'function') {
+      var userId = window.WavedashJS.getUserId();
+      if (userId) {
+        return AllocUTF8(userId);
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_GetUsername__deps: ['$AllocUTF8'],
+  WavedashJS_GetUsername: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getUsername === 'function') {
+      var username = window.WavedashJS.getUsername();
+      if (username) {
+        return AllocUTF8(username);
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_RequestStats__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_RequestStats: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = {};
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.requestStats) {
+          return Promise.reject('WavedashJS.requestStats not available');
+        }
+        return window.WavedashJS.requestStats();
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_SetStat: function (statNamePtr, value) {
+    var statName = UTF8ToString(statNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setStat === 'function') {
+      window.WavedashJS.setStat(statName, value);
+    }
+  },
+
+  WavedashJS_GetStat: function (statNamePtr) {
+    var statName = UTF8ToString(statNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getStat === 'function') {
+      var val = window.WavedashJS.getStat(statName);
+      return typeof val === 'number' ? val : -1;
+    }
+    return -1;
+  },
+
+  WavedashJS_SetAchievement: function (achievementNamePtr) {
+    var achievementName = UTF8ToString(achievementNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setAchievement === 'function') {
+      window.WavedashJS.setAchievement(achievementName);
+    }
+  },
+
+  WavedashJS_GetAchievement: function (achievementNamePtr) {
+    var achievementName = UTF8ToString(achievementNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getAchievement === 'function') {
+      return window.WavedashJS.getAchievement(achievementName) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_StoreStats: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.storeStats === 'function') {
+      return window.WavedashJS.storeStats() ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_UpdateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_UpdateUGCItem: function (ugcIdPtr, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
+    var ugcId = UTF8ToString(ugcIdPtr);
+    var title = UTF8ToString(titlePtr);
+    var description = UTF8ToString(descriptionPtr);
+    var filePath = UTF8ToString(filePathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { ugcId, title, description, visibility, filePath };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.updateUGCItem) {
+          return Promise.reject("WavedashJS.updateUGCItem not available");
+        }
+        return window.WavedashJS.updateUGCItem(ugcId, title, description, visibility, filePath);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
 });
