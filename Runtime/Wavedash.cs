@@ -801,8 +801,8 @@ namespace Wavedash
 
         public static Task<string> CreateUGCItem(
             int ugcType,
-            string title,
-            string description,
+            string title = null,
+            string description = null,
             int visibility = WavedashConstants.UGCVisibility.PUBLIC,
             string filePath = null)
         {
@@ -828,21 +828,21 @@ namespace Wavedash
         /// Updates an existing UGC item.
         /// </summary>
         /// <param name="ugcId">The ID of the UGC item to update.</param>
-        /// <param name="title">The new title (optional).</param>
-        /// <param name="description">The new description (optional).</param>
-        /// <param name="visibility">The new visibility setting.</param>
-        /// <param name="filePath">Path to a new file to upload (optional).</param>
+        /// <param name="title">The new title (optional, pass null to leave unchanged).</param>
+        /// <param name="description">The new description (optional, pass null to leave unchanged).</param>
+        /// <param name="visibility">The new visibility setting (optional, pass null to leave unchanged).</param>
+        /// <param name="filePath">Path to a new file to upload (optional, pass null to leave unchanged).</param>
         /// <returns>The UGC item ID on success.</returns>
         public static Task<string> UpdateUGCItem(
             string ugcId,
             string title = null,
             string description = null,
-            int visibility = WavedashConstants.UGCVisibility.PUBLIC,
+            int? visibility = null,
             string filePath = null)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_UpdateUGCItem(ugcId, title ?? "", description ?? "", visibility, filePath ?? "", fnPtr, requestId));
+                WavedashJS_UpdateUGCItem(ugcId, title, description, visibility ?? -1, filePath, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
 #endif
