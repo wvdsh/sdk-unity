@@ -263,21 +263,20 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_UploadRemoteFile__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_UploadRemoteFile: function (filePathPtr, uploadToLocationPtr, callbackPtr, requestIdPtr) {
+  WavedashJS_UploadRemoteFile: function (filePathPtr, callbackPtr, requestIdPtr) {
     var filePath = UTF8ToString(filePathPtr);
-    var uploadToLocation = UTF8ToString(uploadToLocationPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath, uploadToLocation: uploadToLocation };
+    var args = { filePath: filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadRemoteFile) {
           return Promise.reject('WavedashJS.uploadRemoteFile not available');
         }
-        return window.WavedashJS.uploadRemoteFile(filePath, uploadToLocation);
+        return window.WavedashJS.uploadRemoteFile(filePath);
       },
       cb,
       requestId,
@@ -286,21 +285,20 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_DownloadRemoteFile__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_DownloadRemoteFile: function (filePathPtr, downloadToLocationPtr, callbackPtr, requestIdPtr) {
+  WavedashJS_DownloadRemoteFile: function (filePathPtr, callbackPtr, requestIdPtr) {
     var filePath = UTF8ToString(filePathPtr);
-    var downloadToLocation = UTF8ToString(downloadToLocationPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath, downloadToLocation: downloadToLocation };
+    var args = { filePath: filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteFile) {
           return Promise.reject('WavedashJS.downloadRemoteFile not available');
         }
-        return window.WavedashJS.downloadRemoteFile(filePath, downloadToLocation);
+        return window.WavedashJS.downloadRemoteFile(filePath);
       },
       cb,
       requestId,
@@ -354,21 +352,24 @@ mergeInto(LibraryManager.library, {
 
   WavedashJS_CreateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_CreateUGCItem: function (ugcType, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
-    var title = UTF8ToString(titlePtr);
-    var description = UTF8ToString(descriptionPtr);
-    var filePath = UTF8ToString(filePathPtr);
-
     var cb = __getWasmFunction(callbackPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
-    var args = { ugcType, title, description, visibility, filePath };
+    // Null pointer (0) from C# null → undefined; otherwise use the actual string value
+    var title = titlePtr === 0 ? undefined : UTF8ToString(titlePtr);
+    var description = descriptionPtr === 0 ? undefined : UTF8ToString(descriptionPtr);
+    var filePath = filePathPtr === 0 ? undefined : UTF8ToString(filePathPtr);
+    // Use -1 as sentinel for "undefined" visibility
+    var vis = visibility < 0 ? undefined : visibility;
+
+    var args = { ugcType, title, description, visibility: vis, filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createUGCItem) {
           return Promise.reject("WavedashJS.createUGCItem not available");
         }
-        return window.WavedashJS.createUGCItem(ugcType, title, description, visibility, filePath);
+        return window.WavedashJS.createUGCItem(ugcType, title, description, vis, filePath);
       },
       cb,
       requestId,
@@ -377,21 +378,21 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_DownloadUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_DownloadUGCItem: function (ugcIdPtr, localFilePathPtr, callbackPtr, requestIdPtr) {
+  WavedashJS_DownloadUGCItem: function (ugcIdPtr, filePathPtr, callbackPtr, requestIdPtr) {
     var ugcId = UTF8ToString(ugcIdPtr);
-    var localFilePath = UTF8ToString(localFilePathPtr);
+    var filePath = UTF8ToString(filePathPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { ugcId, localFilePath };
+    var args = { ugcId, filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.downloadUGCItem) {
           return Promise.reject("WavedashJS.downloadUGCItem not available");
         }
-        return window.WavedashJS.downloadUGCItem(ugcId, localFilePath);
+        return window.WavedashJS.downloadUGCItem(ugcId, filePath);
       },
       cb,
       requestId,
@@ -400,21 +401,21 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_CreateLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_CreateLobby: function (lobbyType, maxPlayers, callbackPtr, requestIdPtr) {
+  WavedashJS_CreateLobby: function (visibility, maxPlayers, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
     // maxPlayers can be <= 0 to indicate null/undefined
     var mp = maxPlayers > 0 ? maxPlayers : undefined;
 
-    var args = { lobbyType: lobbyType, maxPlayers: mp };
+    var args = { visibility: visibility, maxPlayers: mp };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createLobby) {
           return Promise.reject("WavedashJS.createLobby not available");
         }
-        return window.WavedashJS.createLobby(lobbyType, mp);
+        return window.WavedashJS.createLobby(visibility, mp);
       },
       cb,
       requestId,
@@ -537,5 +538,198 @@ mergeInto(LibraryManager.library, {
       }
     }
     return 0;
+  },
+
+  WavedashJS_GetLobbyData__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyData: function (lobbyIdPtr, keyPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyData === 'function') {
+      var value = window.WavedashJS.getLobbyData(lobbyId, key);
+      if (value != null) {
+        return AllocUTF8(String(value));
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_SetLobbyData: function (lobbyIdPtr, keyPtr, valuePtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    var value = UTF8ToString(valuePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setLobbyData === 'function') {
+      return window.WavedashJS.setLobbyData(lobbyId, key, value) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_GetLobbyUsers__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyUsers: function (lobbyIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyUsers === 'function') {
+      var users = window.WavedashJS.getLobbyUsers(lobbyId);
+      if (users) {
+        return AllocUTF8(JSON.stringify(users));
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_GetNumLobbyUsers: function (lobbyIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getNumLobbyUsers === 'function') {
+      return window.WavedashJS.getNumLobbyUsers(lobbyId);
+    }
+    return 0;
+  },
+
+  WavedashJS_SendLobbyMessage: function (lobbyIdPtr, messagePtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var message = UTF8ToString(messagePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.sendLobbyMessage === 'function') {
+      return window.WavedashJS.sendLobbyMessage(lobbyId, message) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_ToggleOverlay: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.toggleOverlay === 'function') {
+      window.WavedashJS.toggleOverlay();
+    }
+  },
+
+  WavedashJS_GetUserId__deps: ['$AllocUTF8'],
+  WavedashJS_GetUserId: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getUserId === 'function') {
+      var userId = window.WavedashJS.getUserId();
+      if (userId) {
+        return AllocUTF8(userId);
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_GetUsername__deps: ['$AllocUTF8'],
+  WavedashJS_GetUsername: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getUsername === 'function') {
+      var username = window.WavedashJS.getUsername();
+      if (username) {
+        return AllocUTF8(username);
+      }
+    }
+    return 0;
+  },
+
+  WavedashJS_RequestStats__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_RequestStats: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = {};
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.requestStats) {
+          return Promise.reject('WavedashJS.requestStats not available');
+        }
+        return window.WavedashJS.requestStats();
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
+  WavedashJS_SetStat: function (statNamePtr, value) {
+    var statName = UTF8ToString(statNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setStat === 'function') {
+      window.WavedashJS.setStat(statName, value);
+    }
+  },
+
+  WavedashJS_GetStat: function (statNamePtr) {
+    var statName = UTF8ToString(statNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getStat === 'function') {
+      var val = window.WavedashJS.getStat(statName);
+      return typeof val === 'number' ? val : -1;
+    }
+    return -1;
+  },
+
+  WavedashJS_SetAchievement: function (achievementNamePtr) {
+    var achievementName = UTF8ToString(achievementNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setAchievement === 'function') {
+      window.WavedashJS.setAchievement(achievementName);
+    }
+  },
+
+  WavedashJS_GetAchievement: function (achievementNamePtr) {
+    var achievementName = UTF8ToString(achievementNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getAchievement === 'function') {
+      return window.WavedashJS.getAchievement(achievementName) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_StoreStats: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.storeStats === 'function') {
+      return window.WavedashJS.storeStats() ? 1 : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_UpdateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_UpdateUGCItem: function (ugcIdPtr, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
+    var ugcId = UTF8ToString(ugcIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    // Null pointer (0) from C# null → undefined; otherwise use the actual string value
+    var title = titlePtr === 0 ? undefined : UTF8ToString(titlePtr);
+    var description = descriptionPtr === 0 ? undefined : UTF8ToString(descriptionPtr);
+    var filePath = filePathPtr === 0 ? undefined : UTF8ToString(filePathPtr);
+    // Use -1 as sentinel for "undefined" visibility
+    var vis = visibility < 0 ? undefined : visibility;
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { ugcId, title, description, visibility: vis, filePath };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.updateUGCItem) {
+          return Promise.reject("WavedashJS.updateUGCItem not available");
+        }
+        return window.WavedashJS.updateUGCItem(ugcId, title, description, vis, filePath);
+      },
+      cb,
+      requestId,
+      args
+    );
   },
 });
