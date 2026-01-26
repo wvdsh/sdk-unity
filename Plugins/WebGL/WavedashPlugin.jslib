@@ -354,21 +354,24 @@ mergeInto(LibraryManager.library, {
 
   WavedashJS_CreateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_CreateUGCItem: function (ugcType, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
-    var title = UTF8ToString(titlePtr);
-    var description = UTF8ToString(descriptionPtr);
-    var filePath = UTF8ToString(filePathPtr);
-
     var cb = __getWasmFunction(callbackPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
-    var args = { ugcType, title, description, visibility, filePath };
+    // Null pointer (0) from C# null → undefined; otherwise use the actual string value
+    var title = titlePtr === 0 ? undefined : UTF8ToString(titlePtr);
+    var description = descriptionPtr === 0 ? undefined : UTF8ToString(descriptionPtr);
+    var filePath = filePathPtr === 0 ? undefined : UTF8ToString(filePathPtr);
+    // Use -1 as sentinel for "undefined" visibility
+    var vis = visibility < 0 ? undefined : visibility;
+
+    var args = { ugcType, title, description, visibility: vis, filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createUGCItem) {
           return Promise.reject("WavedashJS.createUGCItem not available");
         }
-        return window.WavedashJS.createUGCItem(ugcType, title, description, visibility, filePath);
+        return window.WavedashJS.createUGCItem(ugcType, title, description, vis, filePath);
       },
       cb,
       requestId,
@@ -706,21 +709,25 @@ mergeInto(LibraryManager.library, {
   WavedashJS_UpdateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_UpdateUGCItem: function (ugcIdPtr, titlePtr, descriptionPtr, visibility, filePathPtr, callbackPtr, requestIdPtr) {
     var ugcId = UTF8ToString(ugcIdPtr);
-    var title = UTF8ToString(titlePtr);
-    var description = UTF8ToString(descriptionPtr);
-    var filePath = UTF8ToString(filePathPtr);
     var requestId = UTF8ToString(requestIdPtr);
+
+    // Null pointer (0) from C# null → undefined; otherwise use the actual string value
+    var title = titlePtr === 0 ? undefined : UTF8ToString(titlePtr);
+    var description = descriptionPtr === 0 ? undefined : UTF8ToString(descriptionPtr);
+    var filePath = filePathPtr === 0 ? undefined : UTF8ToString(filePathPtr);
+    // Use -1 as sentinel for "undefined" visibility
+    var vis = visibility < 0 ? undefined : visibility;
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { ugcId, title, description, visibility, filePath };
+    var args = { ugcId, title, description, visibility: vis, filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.updateUGCItem) {
           return Promise.reject("WavedashJS.updateUGCItem not available");
         }
-        return window.WavedashJS.updateUGCItem(ugcId, title, description, visibility, filePath);
+        return window.WavedashJS.updateUGCItem(ugcId, title, description, vis, filePath);
       },
       cb,
       requestId,
