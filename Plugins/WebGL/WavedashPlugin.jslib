@@ -400,21 +400,21 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_CreateLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_CreateLobby: function (lobbyType, maxPlayers, callbackPtr, requestIdPtr) {
+  WavedashJS_CreateLobby: function (lobbyVisibility, maxPlayers, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
     // maxPlayers can be <= 0 to indicate null/undefined
     var mp = maxPlayers > 0 ? maxPlayers : undefined;
 
-    var args = { lobbyType: lobbyType, maxPlayers: mp };
+    var args = { lobbyVisibility: lobbyVisibility, maxPlayers: mp };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createLobby) {
           return Promise.reject("WavedashJS.createLobby not available");
         }
-        return window.WavedashJS.createLobby(lobbyType, mp);
+        return window.WavedashJS.createLobby(lobbyVisibility, mp);
       },
       cb,
       requestId,
