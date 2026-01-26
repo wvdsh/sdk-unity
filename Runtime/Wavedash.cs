@@ -228,14 +228,12 @@ namespace Wavedash
         [DllImport("__Internal")]
         private static extern void WavedashJS_UploadRemoteFile(
             string path,
-            string uploadToLocation,
             IntPtr callbackPtr,
             string requestId);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_DownloadRemoteFile(
             string path,
-            string downloadToLocation,
             IntPtr callbackPtr,
             string requestId);
 
@@ -735,7 +733,7 @@ namespace Wavedash
                 UnityEngine.Debug.LogWarning($"UploadRemoteFile: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
             }
             return InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_UploadRemoteFile(path, path, fnPtr, requestId));
+                WavedashJS_UploadRemoteFile(path, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
 #endif
@@ -759,7 +757,7 @@ namespace Wavedash
                 }
             }
             return InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_DownloadRemoteFile(path, path, fnPtr, requestId));
+                WavedashJS_DownloadRemoteFile(path, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
 #endif

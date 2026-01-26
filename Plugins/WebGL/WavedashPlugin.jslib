@@ -263,21 +263,20 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_UploadRemoteFile__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_UploadRemoteFile: function (filePathPtr, uploadToLocationPtr, callbackPtr, requestIdPtr) {
+  WavedashJS_UploadRemoteFile: function (filePathPtr, callbackPtr, requestIdPtr) {
     var filePath = UTF8ToString(filePathPtr);
-    var uploadToLocation = UTF8ToString(uploadToLocationPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath, uploadToLocation: uploadToLocation };
+    var args = { filePath: filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadRemoteFile) {
           return Promise.reject('WavedashJS.uploadRemoteFile not available');
         }
-        return window.WavedashJS.uploadRemoteFile(filePath, uploadToLocation);
+        return window.WavedashJS.uploadRemoteFile(filePath);
       },
       cb,
       requestId,
@@ -286,21 +285,20 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_DownloadRemoteFile__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_DownloadRemoteFile: function (filePathPtr, downloadToLocationPtr, callbackPtr, requestIdPtr) {
+  WavedashJS_DownloadRemoteFile: function (filePathPtr, callbackPtr, requestIdPtr) {
     var filePath = UTF8ToString(filePathPtr);
-    var downloadToLocation = UTF8ToString(downloadToLocationPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath, downloadToLocation: downloadToLocation };
+    var args = { filePath: filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteFile) {
           return Promise.reject('WavedashJS.downloadRemoteFile not available');
         }
-        return window.WavedashJS.downloadRemoteFile(filePath, downloadToLocation);
+        return window.WavedashJS.downloadRemoteFile(filePath);
       },
       cb,
       requestId,
@@ -380,21 +378,21 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_DownloadUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_DownloadUGCItem: function (ugcIdPtr, localFilePathPtr, callbackPtr, requestIdPtr) {
+  WavedashJS_DownloadUGCItem: function (ugcIdPtr, filePathPtr, callbackPtr, requestIdPtr) {
     var ugcId = UTF8ToString(ugcIdPtr);
-    var localFilePath = UTF8ToString(localFilePathPtr);
+    var filePath = UTF8ToString(filePathPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { ugcId, localFilePath };
+    var args = { ugcId, filePath };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.downloadUGCItem) {
           return Promise.reject("WavedashJS.downloadUGCItem not available");
         }
-        return window.WavedashJS.downloadUGCItem(ugcId, localFilePath);
+        return window.WavedashJS.downloadUGCItem(ugcId, filePath);
       },
       cb,
       requestId,
@@ -403,21 +401,21 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_CreateLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_CreateLobby: function (lobbyVisibility, maxPlayers, callbackPtr, requestIdPtr) {
+  WavedashJS_CreateLobby: function (visibility, maxPlayers, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
     // maxPlayers can be <= 0 to indicate null/undefined
     var mp = maxPlayers > 0 ? maxPlayers : undefined;
 
-    var args = { lobbyVisibility: lobbyVisibility, maxPlayers: mp };
+    var args = { visibility: visibility, maxPlayers: mp };
 
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createLobby) {
           return Promise.reject("WavedashJS.createLobby not available");
         }
-        return window.WavedashJS.createLobby(lobbyVisibility, mp);
+        return window.WavedashJS.createLobby(visibility, mp);
       },
       cb,
       requestId,
