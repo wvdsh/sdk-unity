@@ -39,6 +39,8 @@ namespace Wavedash
         public static event Action<Dictionary<string, object>> OnBackendConnected;
         public static event Action<Dictionary<string, object>> OnBackendDisconnected;
         public static event Action<Dictionary<string, object>> OnBackendReconnecting;
+        // Stats events
+        public static event Action<Dictionary<string, object>> OnCurrentStatsReceived;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -46,6 +48,8 @@ namespace Wavedash
         
         // Cached user data to avoid repeated JS calls
         private static Dictionary<string, object> _cachedUser;
+        private static string _cachedUserId;
+        private static string _cachedUsername;
 
         // Pending TaskCompletionSources by requestId
         private static readonly Dictionary<string, object> _pending = new();
@@ -72,7 +76,7 @@ namespace Wavedash
         // Lobby Functions
         [DllImport("__Internal")]
         private static extern void WavedashJS_CreateLobby(
-            int lobbyType,
+            int lobbyVisibility,
             int maxPlayers,
             IntPtr callbackPtr,
             string requestId);
@@ -97,6 +101,58 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetLobbyHostId(string lobbyId);
+
+        [DllImport("__Internal")]
+        private static extern string WavedashJS_GetLobbyData(string lobbyId, string key);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_SetLobbyData(string lobbyId, string key, string value);
+
+        [DllImport("__Internal")]
+        private static extern string WavedashJS_GetLobbyUsers(string lobbyId);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_GetNumLobbyUsers(string lobbyId);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_SendLobbyMessage(string lobbyId, string message);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ToggleOverlay();
+
+        [DllImport("__Internal")]
+        private static extern string WavedashJS_GetUserId();
+
+        [DllImport("__Internal")]
+        private static extern string WavedashJS_GetUsername();
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_RequestStats(IntPtr callbackPtr, string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_SetStat(string statName, int value);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_GetStat(string statName);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_SetAchievement(string achievementName);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_GetAchievement(string achievementName);
+
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_StoreStats();
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_UpdateUGCItem(
+            string ugcId,
+            string title,
+            string description,
+            int visibility,
+            string filePath,
+            IntPtr callbackPtr,
+            string requestId);
 
         [DllImport("__Internal")]
         private static extern int WavedashJS_BroadcastP2PMessage(
@@ -172,14 +228,12 @@ namespace Wavedash
         [DllImport("__Internal")]
         private static extern void WavedashJS_UploadRemoteFile(
             string path,
-            string uploadToLocation,
             IntPtr callbackPtr,
             string requestId);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_DownloadRemoteFile(
             string path,
-            string downloadToLocation,
             IntPtr callbackPtr,
             string requestId);
 
@@ -203,13 +257,15 @@ namespace Wavedash
             string description,
             int visibility,
             string filePath,
-            IntPtr callbackPtr, string requestId);
+            IntPtr callbackPtr,
+            string requestId);
         
         [DllImport("__Internal")]
         private static extern void WavedashJS_DownloadUGCItem(
             string ugcId,
             string filePath,
-            IntPtr callbackPtr, string requestId);
+            IntPtr callbackPtr,
+            string requestId);
 
 #endif
         #endregion
@@ -307,13 +363,13 @@ namespace Wavedash
         /// Creates a new lobby with the current user as the host.
         /// Listen for <see cref="OnLobbyJoined"/> to receive the full lobby context (hostId, users, metadata).
         /// </summary>
-        /// <param name="lobbyType">The visibility/type of lobby to create.</param>
+        /// <param name="lobbyVisibility">The visibility of the lobby to create.</param>
         /// <param name="maxPlayers">The maximum number of players in the lobby. If 0, the default max players will be used.</param>
         /// <returns>The ID of the created lobby, or null on failure.</returns>
-        public static Task<string> CreateLobby(int lobbyType, int maxPlayers = 0) =>
+        public static Task<string> CreateLobby(int lobbyVisibility, int maxPlayers = 0) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
+                WavedashJS_CreateLobby(lobbyVisibility, maxPlayers, fnPtr, requestId));
 #else
             Task.FromResult<string>(null);
 #endif
@@ -364,6 +420,91 @@ namespace Wavedash
             return WavedashJS_GetLobbyHostId(lobbyId);
 #else
             return null;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a value from the lobby's metadata.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to retrieve.</param>
+        /// <returns>The value as a string, or null if not found.</returns>
+        public static string GetLobbyData(string lobbyId, string key)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLobbyData(lobbyId, key);
+#else
+            return null;
+#endif
+        }
+
+        /// <summary>
+        /// Sets a value in the lobby's metadata. Only the host can set lobby data.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to set.</param>
+        /// <param name="value">The value to set.</param>
+        /// <returns>True if the operation was successful.</returns>
+        public static bool SetLobbyData(string lobbyId, string key, string value)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_SetLobbyData(lobbyId, key, value) == 1;
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Gets the list of users currently in the lobby.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <returns>A list of user dictionaries containing userId, username, and other data.</returns>
+        public static List<Dictionary<string, object>> GetLobbyUsers(string lobbyId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            string usersJson = WavedashJS_GetLobbyUsers(lobbyId);
+            if (!string.IsNullOrEmpty(usersJson))
+            {
+                try
+                {
+                    return JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(usersJson);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to parse lobby users: {e.Message}");
+                }
+            }
+#endif
+            return new List<Dictionary<string, object>>();
+        }
+
+        /// <summary>
+        /// Gets the number of users currently in the lobby.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <returns>The number of users in the lobby.</returns>
+        public static int GetNumLobbyUsers(string lobbyId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetNumLobbyUsers(lobbyId);
+#else
+            return 0;
+#endif
+        }
+
+        /// <summary>
+        /// Sends a chat message to all users in the lobby.
+        /// This is a fire-and-forget operation.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="message">The message to send.</param>
+        /// <returns>True if the message was queued for sending.</returns>
+        public static bool SendLobbyChatMessage(string lobbyId, string message)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_SendLobbyMessage(lobbyId, message) == 1;
+#else
+            return false;
 #endif
         }
 
@@ -594,7 +735,7 @@ namespace Wavedash
                 UnityEngine.Debug.LogWarning($"UploadRemoteFile: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
             }
             return InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_UploadRemoteFile(path, path, fnPtr, requestId));
+                WavedashJS_UploadRemoteFile(path, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
 #endif
@@ -618,7 +759,7 @@ namespace Wavedash
                 }
             }
             return InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_DownloadRemoteFile(path, path, fnPtr, requestId));
+                WavedashJS_DownloadRemoteFile(path, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
 #endif
@@ -660,8 +801,8 @@ namespace Wavedash
 
         public static Task<string> CreateUGCItem(
             int ugcType,
-            string title,
-            string description,
+            string title = null,
+            string description = null,
             int visibility = WavedashConstants.UGCVisibility.PUBLIC,
             string filePath = null)
         {
@@ -673,13 +814,183 @@ namespace Wavedash
 #endif
         }
 
-        public static Task<string> DownloadUGCItem(string ugcId, string localFilePath)
+        public static Task<string> DownloadUGCItem(string ugcId, string filePath)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_DownloadUGCItem(ugcId, localFilePath, fnPtr, requestId));
+                WavedashJS_DownloadUGCItem(ugcId, filePath, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
+#endif
+        }
+
+        /// <summary>
+        /// Updates an existing UGC item.
+        /// </summary>
+        /// <param name="ugcId">The ID of the UGC item to update.</param>
+        /// <param name="title">The new title (optional, pass null to leave unchanged).</param>
+        /// <param name="description">The new description (optional, pass null to leave unchanged).</param>
+        /// <param name="visibility">The new visibility setting (optional, pass null to leave unchanged).</param>
+        /// <param name="filePath">Path to a new file to upload (optional, pass null to leave unchanged).</param>
+        /// <returns>The UGC item ID on success.</returns>
+        public static Task<string> UpdateUGCItem(
+            string ugcId,
+            string title = null,
+            string description = null,
+            int? visibility = null,
+            string filePath = null)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_UpdateUGCItem(ugcId, title, description, visibility ?? -1, filePath, fnPtr, requestId));
+#else
+            return Task.FromResult<string>(null);
+#endif
+        }
+
+        // ===========
+        // Stats & Achievements
+        // ===========
+
+        /// <summary>
+        /// Requests the current stats and achievements from the server.
+        /// Listen for <see cref="OnCurrentStatsReceived"/> to receive the data.
+        /// </summary>
+        public static Task<bool> RequestStats() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_RequestStats(fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        /// <summary>
+        /// Sets an integer stat value.
+        /// </summary>
+        /// <param name="statName">The identifier of the stat.</param>
+        /// <param name="value">The value to set.</param>
+        /// <param name="storeNow">If true, immediately persists to the server. Otherwise, batched.</param>
+        public static void SetStatInt(string statName, int value, bool storeNow = false)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WavedashJS_SetStat(statName, value);
+            if (storeNow)
+            {
+                WavedashJS_StoreStats();
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Gets the current value of an integer stat.
+        /// Note: You must call <see cref="RequestStats"/> first to load stats from the server.
+        /// </summary>
+        /// <param name="statName">The identifier of the stat.</param>
+        /// <returns>The stat value, or -1 if not found.</returns>
+        public static int GetStatInt(string statName)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetStat(statName);
+#else
+            return -1;
+#endif
+        }
+
+        /// <summary>
+        /// Unlocks an achievement and persists it to the server.
+        /// </summary>
+        /// <param name="achievementName">The identifier of the achievement.</param>
+        public static void SetAchievement(string achievementName)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WavedashJS_SetAchievement(achievementName);
+            WavedashJS_StoreStats();
+#endif
+        }
+
+        /// <summary>
+        /// Checks if an achievement has been unlocked.
+        /// Note: You must call <see cref="RequestStats"/> first to load achievements from the server.
+        /// </summary>
+        /// <param name="achievementName">The identifier of the achievement.</param>
+        /// <returns>True if the achievement is unlocked.</returns>
+        public static bool GetAchievement(string achievementName)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetAchievement(achievementName) == 1;
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Manually triggers a save of pending stats to the server.
+        /// Usually not needed as stats are auto-saved when using SetStatInt with storeNow=true
+        /// or when calling SetAchievement.
+        /// </summary>
+        /// <returns>True if stats were stored successfully.</returns>
+        public static bool StoreStats()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_StoreStats() == 1;
+#else
+            return false;
+#endif
+        }
+
+        // ===========
+        // UI / Overlay
+        // ===========
+
+        /// <summary>
+        /// Toggles the Wavedash overlay UI.
+        /// </summary>
+        public static void ToggleOverlay()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WavedashJS_ToggleOverlay();
+#endif
+        }
+
+        // ===========
+        // User Info
+        // ===========
+
+        /// <summary>
+        /// Gets the current user's ID. Results are cached after the first call.
+        /// </summary>
+        /// <returns>The user ID string.</returns>
+        public static string GetUserId()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!string.IsNullOrEmpty(_cachedUserId))
+            {
+                return _cachedUserId;
+            }
+
+            _cachedUserId = WavedashJS_GetUserId();
+            return _cachedUserId;
+#else
+            return null;
+#endif
+        }
+
+        /// <summary>
+        /// Gets the current user's username. Results are cached after the first call.
+        /// </summary>
+        /// <returns>The username string.</returns>
+        public static string GetUsername()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!string.IsNullOrEmpty(_cachedUsername))
+            {
+                return _cachedUsername;
+            }
+
+            _cachedUsername = WavedashJS_GetUsername();
+            return _cachedUsername;
+#else
+            return null;
 #endif
         }
 #endregion
@@ -834,6 +1145,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("BackendReconnecting Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnBackendReconnecting);
+            }
+
+            public void CurrentStatsReceived(string dataJson)
+            {
+                if (_debug) Debug.Log("CurrentStatsReceived Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnCurrentStatsReceived);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)
