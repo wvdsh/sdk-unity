@@ -76,7 +76,7 @@ namespace Wavedash
         // Lobby Functions
         [DllImport("__Internal")]
         private static extern void WavedashJS_CreateLobby(
-            int lobbyType,
+            int lobbyVisibility,
             int maxPlayers,
             IntPtr callbackPtr,
             string requestId);
@@ -363,13 +363,13 @@ namespace Wavedash
         /// Creates a new lobby with the current user as the host.
         /// Listen for <see cref="OnLobbyJoined"/> to receive the full lobby context (hostId, users, metadata).
         /// </summary>
-        /// <param name="lobbyType">The visibility/type of lobby to create.</param>
+        /// <param name="lobbyVisibility">The visibility of the lobby to create.</param>
         /// <param name="maxPlayers">The maximum number of players in the lobby. If 0, the default max players will be used.</param>
         /// <returns>The ID of the created lobby, or null on failure.</returns>
-        public static Task<string> CreateLobby(int lobbyType, int maxPlayers = 0) =>
+        public static Task<string> CreateLobby(int lobbyVisibility, int maxPlayers = 0) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_CreateLobby(lobbyType, maxPlayers, fnPtr, requestId));
+                WavedashJS_CreateLobby(lobbyVisibility, maxPlayers, fnPtr, requestId));
 #else
             Task.FromResult<string>(null);
 #endif
