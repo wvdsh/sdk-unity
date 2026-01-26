@@ -257,13 +257,15 @@ namespace Wavedash
             string description,
             int visibility,
             string filePath,
-            IntPtr callbackPtr, string requestId);
+            IntPtr callbackPtr,
+            string requestId);
         
         [DllImport("__Internal")]
         private static extern void WavedashJS_DownloadUGCItem(
             string ugcId,
             string filePath,
-            IntPtr callbackPtr, string requestId);
+            IntPtr callbackPtr,
+            string requestId);
 
 #endif
         #endregion
@@ -812,11 +814,11 @@ namespace Wavedash
 #endif
         }
 
-        public static Task<string> DownloadUGCItem(string ugcId, string localFilePath)
+        public static Task<string> DownloadUGCItem(string ugcId, string filePath)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_DownloadUGCItem(ugcId, localFilePath, fnPtr, requestId));
+                WavedashJS_DownloadUGCItem(ugcId, filePath, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
 #endif
