@@ -485,6 +485,28 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_InviteUserToLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_InviteUserToLobby: function (lobbyIdPtr, userIdPtr, callbackPtr, requestIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var userId = UTF8ToString(userIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = { lobbyId: lobbyId, userId: userId };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.inviteUserToLobby) {
+          return Promise.reject("WavedashJS.inviteUserToLobby not available");
+        }
+        return window.WavedashJS.inviteUserToLobby(lobbyId, userId);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
   WavedashJS_BroadcastP2PMessage: function (appChannel, reliable, payloadPtr, payloadLength) {
     if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.broadcastP2PMessage) {
       // Zero-copy view: safe because broadcastP2PMessage is synchronous and
