@@ -31,6 +31,7 @@ namespace Wavedash
         public static event Action<Dictionary<string, object>> OnLobbyMessage;
         public static event Action<Dictionary<string, object>> OnLobbyDataUpdated;
         public static event Action<Dictionary<string, object>> OnLobbyUsersUpdated;
+        public static event Action<Dictionary<string, object>> OnLobbyInvite;
         // P2P events
         public static event Action<Dictionary<string, object>> OnP2PConnectionEstablished;
         public static event Action<Dictionary<string, object>> OnP2PConnectionFailed;
@@ -116,6 +117,13 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern int WavedashJS_SendLobbyMessage(string lobbyId, string message);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_InviteUserToLobby(
+            string lobbyId,
+            string userId,
+            IntPtr callbackPtr,
+            string requestId);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_ToggleOverlay();
@@ -507,6 +515,21 @@ namespace Wavedash
             return false;
 #endif
         }
+
+        /// <summary>
+        /// Invites a user to join a lobby.
+        /// The invited user will receive an <see cref="OnLobbyInvite"/> event.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby to invite the user to.</param>
+        /// <param name="userId">The ID of the user to invite.</param>
+        /// <returns>True if the invitation was sent successfully.</returns>
+        public static Task<bool> InviteUserToLobby(string lobbyId, string userId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_InviteUserToLobby(lobbyId, userId, fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
 
         // ===========
         // P2P Messaging
@@ -1109,6 +1132,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("LobbyUsersUpdated Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnLobbyUsersUpdated);
+            }
+
+            public void LobbyInvite(string dataJson)
+            {
+                if (_debug) Debug.Log("LobbyInvite Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnLobbyInvite);
             }
 
             public void P2PConnectionEstablished(string dataJson)
