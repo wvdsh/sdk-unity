@@ -135,6 +135,12 @@ namespace Wavedash
         private static extern string WavedashJS_GetUsername();
 
         [DllImport("__Internal")]
+        private static extern string WavedashJS_GetUserAvatarUrl(string userId, int size);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListFriends(IntPtr callbackPtr, string requestId);
+
+        [DllImport("__Internal")]
         private static extern void WavedashJS_RequestStats(IntPtr callbackPtr, string requestId);
 
         [DllImport("__Internal")]
@@ -1016,6 +1022,73 @@ namespace Wavedash
             return null;
 #endif
         }
+
+        /// <summary>
+        /// Gets avatar URL for a cached user with size transformation.
+        /// Users are cached when seen via friends list or lobby membership.
+        /// </summary>
+        /// <param name="userId">The user ID to get the avatar URL for.</param>
+        /// <param name="size">Avatar size constant from WavedashConstants.AvatarSize (SMALL=0, MEDIUM=1, LARGE=2).</param>
+        /// <returns>CDN URL with size transformation, or null if user not cached or has no avatar.</returns>
+        public static string GetUserAvatarUrl(string userId, int size = WavedashConstants.AvatarSize.MEDIUM)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetUserAvatarUrl(userId, size);
+#else
+            return null;
+#endif
+        }
+
+        /// <summary>
+        /// Fetches avatar for a user and returns as Texture2D.
+        /// Users must be cached (seen via friends list or lobby membership) for this to work.
+        /// </summary>
+        /// <param name="userId">The user ID to get the avatar for.</param>
+        /// <param name="size">Avatar size constant from WavedashConstants.AvatarSize (SMALL=0, MEDIUM=1, LARGE=2).</param>
+        /// <returns>Texture2D on success, null if user not cached, has no avatar, or fetch fails.</returns>
+        public static async Task<Texture2D> GetUserAvatar(string userId, int size = WavedashConstants.AvatarSize.MEDIUM)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            var url = GetUserAvatarUrl(userId, size);
+            if (string.IsNullOrEmpty(url)) return null;
+
+            using (var request = UnityEngine.Networking.UnityWebRequestTexture.GetTexture(url))
+            {
+                var operation = request.SendWebRequest();
+                while (!operation.isDone)
+                {
+                    await Task.Yield();
+                }
+
+                if (request.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    return UnityEngine.Networking.DownloadHandlerTexture.GetContent(request);
+                }
+                Debug.LogWarning($"Failed to load avatar for {userId}: {request.error}");
+                return null;
+            }
+#else
+            return null;
+#endif
+        }
+
+        // ===========
+        // Friends
+        // ===========
+
+        /// <summary>
+        /// Lists the current user's friends.
+        /// Each friend contains: userId, username, avatarUrl (optional), isOnline.
+        /// Friends are automatically cached for avatar lookups via GetUserAvatarUrl/GetUserAvatar.
+        /// </summary>
+        /// <returns>List of friend dictionaries, or null on failure.</returns>
+        public static Task<List<Dictionary<string, object>>> ListFriends() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_ListFriends(fnPtr, requestId));
+#else
+            Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
 #endregion
 
 

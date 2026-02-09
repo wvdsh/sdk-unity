@@ -50,4 +50,17 @@ public static class WavedashConstants
     public const int TIME_MILLISECONDS = 2;
     public const int TIME_GAME_TICKS = 3;
   }
+
+  /// <summary>
+  /// Avatar size constants for GetUserAvatarUrl
+  /// </summary>
+  public static class AvatarSize
+  {
+    /// <summary>64x64 - Lists, chat bubbles</summary>
+    public const int SMALL = 0;
+    /// <summary>128x128 - Profile cards</summary>
+    public const int MEDIUM = 1;
+    /// <summary>256x256 - Large displays</summary>
+    public const int LARGE = 2;
+  }
 }
