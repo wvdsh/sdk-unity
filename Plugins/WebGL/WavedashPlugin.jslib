@@ -658,6 +658,20 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  WavedashJS_GetUserAvatarUrl__deps: ['$AllocUTF8'],
+  WavedashJS_GetUserAvatarUrl: function (userIdPtr, size) {
+    var userId = UTF8ToString(userIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getUserAvatarUrl === 'function') {
+      var url = window.WavedashJS.getUserAvatarUrl(userId, size);
+      if (url) {
+        return AllocUTF8(url);
+      }
+    }
+    return 0;
+  },
+
   WavedashJS_RequestStats__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_RequestStats: function (callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
