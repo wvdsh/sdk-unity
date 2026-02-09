@@ -672,6 +672,26 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  WavedashJS_ListFriends__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListFriends: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    var args = {};
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listFriends) {
+          return Promise.reject('WavedashJS.listFriends not available');
+        }
+        return window.WavedashJS.listFriends();
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
   WavedashJS_RequestStats__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_RequestStats: function (callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
