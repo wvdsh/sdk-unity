@@ -138,6 +138,9 @@ namespace Wavedash
         private static extern string WavedashJS_GetUserAvatarUrl(string userId, int size);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_ListFriends(IntPtr callbackPtr, string requestId);
+
+        [DllImport("__Internal")]
         private static extern void WavedashJS_RequestStats(IntPtr callbackPtr, string requestId);
 
         [DllImport("__Internal")]
@@ -1068,6 +1071,24 @@ namespace Wavedash
             return null;
 #endif
         }
+
+        // ===========
+        // Friends
+        // ===========
+
+        /// <summary>
+        /// Lists the current user's friends.
+        /// Each friend contains: userId, username, avatarUrl (optional), isOnline.
+        /// Friends are automatically cached for avatar lookups via GetUserAvatarUrl/GetUserAvatar.
+        /// </summary>
+        /// <returns>List of friend dictionaries, or null on failure.</returns>
+        public static Task<List<Dictionary<string, object>>> ListFriends() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_ListFriends(fnPtr, requestId));
+#else
+            Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
 #endregion
 
 
