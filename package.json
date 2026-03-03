@@ -24,5 +24,12 @@
     "url": "https://wavedash.com"
   },
   "type": "library",
-  "hideInEditor": false
+  "hideInEditor": false,
+  "samples": [
+    {
+      "displayName": "Mirror Transport",
+      "description": "Transport layer for Mirror Networking that uses Wavedash P2P. Requires the Mirror package.",
+      "path": "Integrations~/Mirror"
+    }
+  ]
 }
