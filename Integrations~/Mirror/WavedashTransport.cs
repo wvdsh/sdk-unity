@@ -145,7 +145,7 @@ public class WavedashTransport : Transport
     public override bool Available() =>
         Application.platform == RuntimePlatform.WebGLPlayer;
 
-    public override int GetMaxPacketSize(int channelId = Channels.Reliable) => 16384;
+    public override int GetMaxPacketSize(int channelId = Channels.Reliable) => Wavedash.SDK.MAX_PAYLOAD_SIZE;
 
     // --- Client ---
 
