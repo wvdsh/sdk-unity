@@ -2,7 +2,7 @@
   "name": "com.wavedash.sdk",
   "version": "1.0.10",
   "displayName": "Wavedash SDK",
-  "description": "Unity SDK for integrating Wavedash services in WebGL builds. Provides seamless JavaScript interop for Unity games exported to WebGL/WASM to communicate with the Wavedash JS SDK.",
+  "description": "Unity SDK for integrating Wavedash services in Web builds. Provides seamless JavaScript interop for Unity games to utilize Wavedash Online Services.",
   "unity": "6000.0",
   "unityRelease": "0f1",
   "dependencies": {
@@ -24,5 +24,12 @@
     "url": "https://wavedash.com"
   },
   "type": "library",
-  "hideInEditor": false
+  "hideInEditor": false,
+  "samples": [
+    {
+      "displayName": "Mirror Transport",
+      "description": "Transport layer for Mirror Networking that uses Wavedash WebRTC networking. Requires the Mirror package.",
+      "path": "Integrations~/Mirror"
+    }
+  ]
 }

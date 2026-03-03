@@ -172,7 +172,7 @@ namespace Wavedash
         private static extern int WavedashJS_BroadcastP2PMessage(
             int appChannel,
             bool reliable,
-            byte[] payload,
+            IntPtr payload,
             int payloadLength);
 
         [DllImport("__Internal")]
@@ -180,7 +180,7 @@ namespace Wavedash
             string targetUserId,
             int appChannel,
             bool reliable,
-            byte[] payload,
+            IntPtr payload,
             int payloadLength);
 
         [DllImport("__Internal")]
@@ -547,28 +547,79 @@ namespace Wavedash
         private const int P2P_DATALENGTH_SIZE = 4;
         private const int P2P_HEADER_SIZE = P2P_USERID_SIZE + P2P_CHANNEL_SIZE + P2P_DATALENGTH_SIZE; // 40 bytes
         private const int P2P_SLOT_HEADER_SIZE = 4; // 4-byte length prefix per message slot
+        private const int P2P_MESSAGE_SIZE = 4096;
+
+        /// <summary>
+        /// Maximum payload size in bytes for a single P2P message.
+        /// </summary>
+        public const int MAX_PAYLOAD_SIZE = P2P_MESSAGE_SIZE - P2P_SLOT_HEADER_SIZE - P2P_HEADER_SIZE;
 
         // Internal buffer for receiving drained P2P messages
-        // 64KB handles ~31 max-size (2048 byte) messages per drain call
+        // 128KB handles ~31 max-size (4096 byte) messages per drain call
         // If more messages are queued, they remain in the JS queue for the next drain
-        private const int P2P_DRAIN_BUFFER_SIZE = 64 * 1024;
+        private const int P2P_DRAIN_BUFFER_SIZE = 128 * 1024;
         private static byte[] _p2pDrainBuffer;
 
+        /// <summary>
+        /// Broadcasts a P2P message to all connected peers.
+        /// </summary>
+        /// <param name="payload">The message payload to broadcast.</param>
+        /// <param name="channel">The P2P channel to send on.</param>
+        /// <param name="reliable">Whether to send reliably (ordered, guaranteed delivery).</param>
         public static bool BroadcastP2PMessage(byte[] payload, int channel = 0, bool reliable = true)
         {
-#if UNITY_WEBGL && !UNITY_EDITOR
             if (payload == null || payload.Length == 0) return false;
-            return WavedashJS_BroadcastP2PMessage(channel, reliable, payload, payload.Length) == 1;
+            return BroadcastP2PMessage(new ArraySegment<byte>(payload), channel, reliable);
+        }
+
+        /// <inheritdoc cref="BroadcastP2PMessage(byte[], int, bool)"/>
+        public static bool BroadcastP2PMessage(ArraySegment<byte> payload, int channel = 0, bool reliable = true)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (payload.Array == null || payload.Count == 0) return false;
+            var handle = GCHandle.Alloc(payload.Array, GCHandleType.Pinned);
+            try
+            {
+                IntPtr ptr = handle.AddrOfPinnedObject() + payload.Offset;
+                return WavedashJS_BroadcastP2PMessage(channel, reliable, ptr, payload.Count) == 1;
+            }
+            finally
+            {
+                handle.Free();
+            }
 #else
             return false;
 #endif
         }
 
+        /// <summary>
+        /// Sends a P2P message to a specific user.
+        /// </summary>
+        /// <param name="targetUserId">The user ID to send to.</param>
+        /// <param name="payload">The message payload to send.</param>
+        /// <param name="channel">The P2P channel to send on.</param>
+        /// <param name="reliable">Whether to send reliably (ordered, guaranteed delivery).</param>
         public static bool SendP2PMessage(string targetUserId, byte[] payload, int channel = 0, bool reliable = true)
         {
-#if UNITY_WEBGL && !UNITY_EDITOR
             if (string.IsNullOrEmpty(targetUserId) || payload == null || payload.Length == 0) return false;
-            return WavedashJS_SendP2PMessage(targetUserId, channel, reliable, payload, payload.Length) == 1;
+            return SendP2PMessage(targetUserId, new ArraySegment<byte>(payload), channel, reliable);
+        }
+
+        /// <inheritdoc cref="SendP2PMessage(string, byte[], int, bool)"/>
+        public static bool SendP2PMessage(string targetUserId, ArraySegment<byte> payload, int channel = 0, bool reliable = true)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (string.IsNullOrEmpty(targetUserId) || payload.Array == null || payload.Count == 0) return false;
+            var handle = GCHandle.Alloc(payload.Array, GCHandleType.Pinned);
+            try
+            {
+                IntPtr ptr = handle.AddrOfPinnedObject() + payload.Offset;
+                return WavedashJS_SendP2PMessage(targetUserId, channel, reliable, ptr, payload.Count) == 1;
+            }
+            finally
+            {
+                handle.Free();
+            }
 #else
             return false;
 #endif
