@@ -547,7 +547,7 @@ namespace Wavedash
         private const int P2P_DATALENGTH_SIZE = 4;
         private const int P2P_HEADER_SIZE = P2P_USERID_SIZE + P2P_CHANNEL_SIZE + P2P_DATALENGTH_SIZE; // 40 bytes
         private const int P2P_SLOT_HEADER_SIZE = 4; // 4-byte length prefix per message slot
-        private const int P2P_MESSAGE_SIZE = 2048;
+        private const int P2P_MESSAGE_SIZE = 4096;
 
         /// <summary>
         /// Maximum payload size in bytes for a single P2P message.
@@ -555,9 +555,9 @@ namespace Wavedash
         public const int MAX_PAYLOAD_SIZE = P2P_MESSAGE_SIZE - P2P_SLOT_HEADER_SIZE - P2P_HEADER_SIZE;
 
         // Internal buffer for receiving drained P2P messages
-        // 64KB handles ~31 max-size (2048 byte) messages per drain call
+        // 128KB handles ~31 max-size (4096 byte) messages per drain call
         // If more messages are queued, they remain in the JS queue for the next drain
-        private const int P2P_DRAIN_BUFFER_SIZE = 64 * 1024;
+        private const int P2P_DRAIN_BUFFER_SIZE = 128 * 1024;
         private static byte[] _p2pDrainBuffer;
 
         /// <summary>
