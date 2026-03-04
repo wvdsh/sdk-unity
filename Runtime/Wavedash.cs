@@ -192,6 +192,9 @@ namespace Wavedash
         [DllImport("__Internal")]
         private static extern int WavedashJS_GetP2PMaxPayloadSize();
 
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_GetP2PMaxIncomingMessages();
+
         // Leaderboard Functions
         [DllImport("__Internal")]
         private static extern void WavedashJS_GetOrCreateLeaderboard(
@@ -301,12 +304,14 @@ namespace Wavedash
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
 
-            // Read the configured max payload size from JS SDK (reflects messageSize in P2PConfig)
-            int jsMaxPayload = WavedashJS_GetP2PMaxPayloadSize();
-            if (jsMaxPayload > 0)
+            // Read P2P config from JS SDK (reflects messageSize/maxIncomingMessages in P2PConfig)
+            MAX_PAYLOAD_SIZE = WavedashJS_GetP2PMaxPayloadSize();
+            _maxIncomingMessages = WavedashJS_GetP2PMaxIncomingMessages();
+            if (MAX_PAYLOAD_SIZE <= 0 || _maxIncomingMessages <= 0)
             {
-                MAX_PAYLOAD_SIZE = jsMaxPayload;
+                Debug.LogError($"[Wavedash] Failed to read P2P config from JS SDK (maxPayload={MAX_PAYLOAD_SIZE}, maxIncoming={_maxIncomingMessages})");
             }
+            _p2pDrainBuffer = null; // Force reallocation with new sizes on next drain
 #else
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
 #endif
@@ -558,20 +563,20 @@ namespace Wavedash
         private const int P2P_HEADER_SIZE = P2P_USERID_SIZE + P2P_CHANNEL_SIZE + P2P_DATALENGTH_SIZE; // 40 bytes
         private const int P2P_SLOT_HEADER_SIZE = 4; // 4-byte length prefix per message slot
 
-        private const int DEFAULT_P2P_MESSAGE_SIZE = 4096;
-        // Default fallback matching the JS SDK's default MESSAGE_SIZE
-        private const int DEFAULT_MAX_PAYLOAD_SIZE = DEFAULT_P2P_MESSAGE_SIZE - P2P_SLOT_HEADER_SIZE - P2P_HEADER_SIZE;
-
         /// <summary>
         /// Maximum payload size in bytes for a single P2P message.
-        /// This value is read from the JS SDK at initialization and reflects the configured messageSize.
+        /// Read from the JS SDK at initialization via WavedashJS_GetP2PMaxPayloadSize().
         /// </summary>
-        public static int MAX_PAYLOAD_SIZE { get; private set; } = DEFAULT_MAX_PAYLOAD_SIZE;
+        public static int MAX_PAYLOAD_SIZE { get; private set; }
 
-        // Internal buffer for receiving drained P2P messages
-        // 128KB handles ~31 max-size (4096 byte) messages per drain call
-        // If more messages are queued, they remain in the JS queue for the next drain
-        private const int P2P_DRAIN_BUFFER_SIZE = 128 * 1024;
+        /// <summary>
+        /// Max queued incoming messages per channel.
+        /// Read from the JS SDK at initialization via WavedashJS_GetP2PMaxIncomingMessages().
+        /// </summary>
+        private static int _maxIncomingMessages;
+
+        // Internal buffer for receiving drained P2P messages.
+        // Sized to drain an entire full channel queue in one call.
         private static byte[] _p2pDrainBuffer;
 
         /// <summary>
@@ -652,10 +657,11 @@ namespace Wavedash
             messages.Clear();
 
 #if UNITY_WEBGL && !UNITY_EDITOR
-            // Lazy-allocate the drain buffer
+            // Lazy-allocate the drain buffer sized to drain an entire full channel queue
             if (_p2pDrainBuffer == null)
             {
-                _p2pDrainBuffer = new byte[P2P_DRAIN_BUFFER_SIZE];
+                int messageSlotSize = P2P_SLOT_HEADER_SIZE + P2P_HEADER_SIZE + MAX_PAYLOAD_SIZE;
+                _p2pDrainBuffer = new byte[messageSlotSize * _maxIncomingMessages];
             }
 
             int bytesWritten = WavedashJS_DrainP2PChannelToBuffer(channel, _p2pDrainBuffer, _p2pDrainBuffer.Length);
