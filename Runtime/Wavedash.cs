@@ -189,6 +189,9 @@ namespace Wavedash
             byte[] buffer,
             int bufferSize);
 
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_GetP2PMaxPayloadSize();
+
         // Leaderboard Functions
         [DllImport("__Internal")]
         private static extern void WavedashJS_GetOrCreateLeaderboard(
@@ -297,6 +300,13 @@ namespace Wavedash
 
             string configJson = JsonConvert.SerializeObject(config);
             WavedashJS_Init(configJson);
+
+            // Read the configured max payload size from JS SDK (reflects messageSize in P2PConfig)
+            int jsMaxPayload = WavedashJS_GetP2PMaxPayloadSize();
+            if (jsMaxPayload > 0)
+            {
+                MAX_PAYLOAD_SIZE = jsMaxPayload;
+            }
 #else
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
 #endif
@@ -547,12 +557,16 @@ namespace Wavedash
         private const int P2P_DATALENGTH_SIZE = 4;
         private const int P2P_HEADER_SIZE = P2P_USERID_SIZE + P2P_CHANNEL_SIZE + P2P_DATALENGTH_SIZE; // 40 bytes
         private const int P2P_SLOT_HEADER_SIZE = 4; // 4-byte length prefix per message slot
-        private const int P2P_MESSAGE_SIZE = 4096;
+
+        private const int DEFAULT_P2P_MESSAGE_SIZE = 4096;
+        // Default fallback matching the JS SDK's default MESSAGE_SIZE
+        private const int DEFAULT_MAX_PAYLOAD_SIZE = DEFAULT_P2P_MESSAGE_SIZE - P2P_SLOT_HEADER_SIZE - P2P_HEADER_SIZE;
 
         /// <summary>
         /// Maximum payload size in bytes for a single P2P message.
+        /// This value is read from the JS SDK at initialization and reflects the configured messageSize.
         /// </summary>
-        public const int MAX_PAYLOAD_SIZE = P2P_MESSAGE_SIZE - P2P_SLOT_HEADER_SIZE - P2P_HEADER_SIZE;
+        public static int MAX_PAYLOAD_SIZE { get; private set; } = DEFAULT_MAX_PAYLOAD_SIZE;
 
         // Internal buffer for receiving drained P2P messages
         // 128KB handles ~31 max-size (4096 byte) messages per drain call
