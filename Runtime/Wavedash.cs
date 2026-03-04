@@ -660,6 +660,11 @@ namespace Wavedash
             // Lazy-allocate the drain buffer sized to drain an entire full channel queue
             if (_p2pDrainBuffer == null)
             {
+                if (MAX_PAYLOAD_SIZE <= 0 || _maxIncomingMessages <= 0)
+                {
+                    Debug.LogError("[Wavedash] P2P not initialized — call SDK.Init() before draining channels");
+                    return 0;
+                }
                 int messageSlotSize = P2P_SLOT_HEADER_SIZE + P2P_HEADER_SIZE + MAX_PAYLOAD_SIZE;
                 _p2pDrainBuffer = new byte[messageSlotSize * _maxIncomingMessages];
             }
