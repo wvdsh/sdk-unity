@@ -537,6 +537,13 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  WavedashJS_GetP2PMaxIncomingMessages: function () {
+    if (typeof window !== "undefined" && window.WavedashJS && window.WavedashJS.getP2PMaxIncomingMessages) {
+      return window.WavedashJS.getP2PMaxIncomingMessages();
+    }
+    return 0;
+  },
+
   WavedashJS_DrainP2PChannelToBuffer: function (appChannel, bufferPtr, bufferSize) {
     if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.drainP2PChannelToBuffer) {
       return -1;
