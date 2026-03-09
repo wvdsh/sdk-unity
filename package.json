@@ -1,6 +1,6 @@
 {
   "name": "com.wavedash.sdk",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "displayName": "Wavedash SDK",
   "description": "Unity SDK for integrating Wavedash services in Web builds. Provides seamless JavaScript interop for Unity games to utilize Wavedash Online Services.",
   "unity": "6000.0",
