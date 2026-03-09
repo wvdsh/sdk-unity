@@ -21,6 +21,7 @@ public class WavedashTransport : Transport
     bool _clientConnected;
 
     readonly List<Wavedash.P2PMessage> messageBuffer = new List<Wavedash.P2PMessage>();
+    readonly HashSet<string> connectedPeers = new HashSet<string>();
 
     void OnEnable()
     {
@@ -85,6 +86,7 @@ public class WavedashTransport : Transport
     void OnP2PConnectionEstablished(Dictionary<string, object> data)
     {
         string userId = data["userId"].ToString();
+        connectedPeers.Add(userId);
 
         if (_serverActive)
         {
@@ -109,6 +111,7 @@ public class WavedashTransport : Transport
     void OnP2PPeerDisconnected(Dictionary<string, object> data)
     {
         string userId = data["userId"].ToString();
+        connectedPeers.Remove(userId);
 
         if (_serverActive && userIdToConnection.TryGetValue(userId, out int connId))
         {
@@ -213,6 +216,20 @@ public class WavedashTransport : Transport
     {
         _serverActive = true;
         Debug.Log("[WavedashTransport] Server started");
+
+        // Register peers whose P2P connections were established before the server started.
+        string localUserId = Wavedash.SDK.GetUserId();
+        foreach (string userId in connectedPeers)
+        {
+            if (userId == localUserId) continue;
+            if (userIdToConnection.ContainsKey(userId)) continue;
+
+            int connId = nextConnectionId++;
+            connectionToUserId[connId] = userId;
+            userIdToConnection[userId] = connId;
+            Debug.Log($"[WavedashTransport] Server: registered existing peer {userId} as connId {connId}");
+            OnServerConnectedWithAddress?.Invoke(connId, userId);
+        }
     }
 
     public override bool ServerActive() => _serverActive;
@@ -276,6 +293,7 @@ public class WavedashTransport : Transport
     {
         ClientDisconnect();
         ServerStop();
+        connectedPeers.Clear();
         currentLobbyId = null;
         hostUserId = null;
         nextConnectionId = 1;
