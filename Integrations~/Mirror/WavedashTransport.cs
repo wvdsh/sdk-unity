@@ -19,6 +19,14 @@ public class WavedashTransport : Transport
 
     bool _serverActive;
     bool _clientConnected;
+    bool _clientConnectedEventPending;
+
+    struct PendingServerConnection
+    {
+        public int connId;
+        public string userId;
+    }
+    readonly List<PendingServerConnection> _pendingServerConnections = new List<PendingServerConnection>();
 
     readonly List<Wavedash.P2PMessage> messageBuffer = new List<Wavedash.P2PMessage>();
     readonly HashSet<string> connectedPeers = new HashSet<string>();
@@ -68,7 +76,7 @@ public class WavedashTransport : Transport
         }
     }
 
-    public event Action OnHostMigration;
+    public event Action<string> OnHostMigration;
 
     void OnLobbyUsersUpdated(Dictionary<string, object> data)
     {
@@ -79,7 +87,7 @@ public class WavedashTransport : Transport
 
         if (previousHost != hostUserId)
         {
-            OnHostMigration?.Invoke();
+            OnHostMigration?.Invoke(hostUserId);
         }
     }
 
@@ -95,16 +103,16 @@ public class WavedashTransport : Transport
                 int connId = nextConnectionId++;
                 connectionToUserId[connId] = userId;
                 userIdToConnection[userId] = connId;
-                Debug.Log($"[WavedashTransport] Server: assigned connId {connId} to {userId}");
-                OnServerConnectedWithAddress?.Invoke(connId, userId);
+                Debug.Log($"[WavedashTransport] Server: assigned connId {connId} to {userId} (event deferred to EarlyUpdate)");
+                _pendingServerConnections.Add(new PendingServerConnection { connId = connId, userId = userId });
             }
         }
 
         if (!_clientConnected && userId == hostUserId)
         {
             _clientConnected = true;
-            Debug.Log("[WavedashTransport] Client: connected to host");
-            OnClientConnected?.Invoke();
+            _clientConnectedEventPending = true;
+            Debug.Log("[WavedashTransport] Client: connected to host (event deferred to EarlyUpdate)");
         }
     }
 
@@ -162,10 +170,12 @@ public class WavedashTransport : Transport
         }
 
         // P2P connections are established by the SDK automatically.
-        // If we already have a connection to the host, fire connected immediately.
+        // If we already have a connection to the host, defer the event
+        // to ClientEarlyUpdate so Mirror has finished setting up
+        // NetworkClient.connection before OnTransportConnected fires.
         if (_clientConnected)
         {
-            OnClientConnected?.Invoke();
+            _clientConnectedEventPending = true;
         }
     }
 
@@ -179,6 +189,7 @@ public class WavedashTransport : Transport
 
     public override void ClientDisconnect()
     {
+        _clientConnectedEventPending = false;
         if (_clientConnected)
         {
             _clientConnected = false;
@@ -188,6 +199,13 @@ public class WavedashTransport : Transport
 
     public override void ClientEarlyUpdate()
     {
+        if (_clientConnectedEventPending)
+        {
+            _clientConnectedEventPending = false;
+            Debug.Log("[WavedashTransport] Client: firing deferred OnClientConnected");
+            OnClientConnected?.Invoke();
+        }
+
         if (!_clientConnected) return;
 
         DrainAndDispatchClient(Channels.Reliable);
@@ -218,6 +236,8 @@ public class WavedashTransport : Transport
         Debug.Log("[WavedashTransport] Server started");
 
         // Register peers whose P2P connections were established before the server started.
+        // Defer the events to ServerEarlyUpdate so NetworkManager has finished
+        // registering its handlers (RegisterServerMessages, OnStartServer, etc.).
         string localUserId = Wavedash.SDK.GetUserId();
         foreach (string userId in connectedPeers)
         {
@@ -227,8 +247,8 @@ public class WavedashTransport : Transport
             int connId = nextConnectionId++;
             connectionToUserId[connId] = userId;
             userIdToConnection[userId] = connId;
-            Debug.Log($"[WavedashTransport] Server: registered existing peer {userId} as connId {connId}");
-            OnServerConnectedWithAddress?.Invoke(connId, userId);
+            Debug.Log($"[WavedashTransport] Server: registered existing peer {userId} as connId {connId} (event deferred to EarlyUpdate)");
+            _pendingServerConnections.Add(new PendingServerConnection { connId = connId, userId = userId });
         }
     }
 
@@ -270,6 +290,16 @@ public class WavedashTransport : Transport
     {
         if (!_serverActive) return;
 
+        if (_pendingServerConnections.Count > 0)
+        {
+            foreach (var pending in _pendingServerConnections)
+            {
+                Debug.Log($"[WavedashTransport] Server: firing deferred OnServerConnectedWithAddress for connId {pending.connId}");
+                OnServerConnectedWithAddress?.Invoke(pending.connId, pending.userId);
+            }
+            _pendingServerConnections.Clear();
+        }
+
         DrainAndDispatchServer(Channels.Reliable);
         DrainAndDispatchServer(Channels.Unreliable);
     }
@@ -293,6 +323,8 @@ public class WavedashTransport : Transport
     {
         ClientDisconnect();
         ServerStop();
+        _pendingServerConnections.Clear();
+        _clientConnectedEventPending = false;
         connectedPeers.Clear();
         currentLobbyId = null;
         hostUserId = null;
