@@ -144,10 +144,16 @@ namespace Wavedash
         private static extern void WavedashJS_RequestStats(IntPtr callbackPtr, string requestId);
 
         [DllImport("__Internal")]
-        private static extern void WavedashJS_SetStat(string statName, int value);
+        private static extern void WavedashJS_SetStatInt(string statName, int value);
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_GetStat(string statName);
+        private static extern int WavedashJS_GetStatInt(string statName);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_SetStatFloat(string statName, float value);
+
+        [DllImport("__Internal")]
+        private static extern float WavedashJS_GetStatFloat(string statName);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_SetAchievement(string achievementName);
@@ -978,7 +984,7 @@ namespace Wavedash
         public static void SetStatInt(string statName, int value, bool storeNow = false)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            WavedashJS_SetStat(statName, value);
+            WavedashJS_SetStatInt(statName, value);
             if (storeNow)
             {
                 WavedashJS_StoreStats();
@@ -995,9 +1001,41 @@ namespace Wavedash
         public static int GetStatInt(string statName)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_GetStat(statName);
+            return WavedashJS_GetStatInt(statName);
 #else
             return -1;
+#endif
+        }
+
+        /// <summary>
+        /// Sets a float stat value.
+        /// </summary>
+        /// <param name="statName">The identifier of the stat.</param>
+        /// <param name="value">The float value to set.</param>
+        /// <param name="storeNow">If true, immediately persists to the server. Otherwise, batched.</param>
+        public static void SetStatFloat(string statName, float value, bool storeNow = false)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WavedashJS_SetStatFloat(statName, value);
+            if (storeNow)
+            {
+                WavedashJS_StoreStats();
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Gets the current value of a float stat.
+        /// Note: You must call <see cref="RequestStats"/> first to load stats from the server.
+        /// </summary>
+        /// <param name="statName">The identifier of the stat.</param>
+        /// <returns>The stat value, or -1.0f if not found.</returns>
+        public static float GetStatFloat(string statName)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetStatFloat(statName);
+#else
+            return -1.0f;
 #endif
         }
 
