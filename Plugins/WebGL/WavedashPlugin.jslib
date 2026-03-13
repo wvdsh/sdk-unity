@@ -726,7 +726,7 @@ mergeInto(LibraryManager.library, {
     );
   },
 
-  WavedashJS_SetStat: function (statNamePtr, value) {
+  WavedashJS_SetStatInt: function (statNamePtr, value) {
     var statName = UTF8ToString(statNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
@@ -735,7 +735,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  WavedashJS_GetStat: function (statNamePtr) {
+  WavedashJS_GetStatInt: function (statNamePtr) {
     var statName = UTF8ToString(statNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
@@ -744,6 +744,26 @@ mergeInto(LibraryManager.library, {
       return typeof val === 'number' ? val : -1;
     }
     return -1;
+  },
+
+  WavedashJS_SetStatFloat: function (statNamePtr, value) {
+    var statName = UTF8ToString(statNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setStat === 'function') {
+      window.WavedashJS.setStat(statName, value);
+    }
+  },
+
+  WavedashJS_GetStatFloat: function (statNamePtr) {
+    var statName = UTF8ToString(statNamePtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getStat === 'function') {
+      var val = window.WavedashJS.getStat(statName);
+      return typeof val === 'number' ? val : -1.0;
+    }
+    return -1.0;
   },
 
   WavedashJS_SetAchievement: function (achievementNamePtr) {
