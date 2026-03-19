@@ -223,7 +223,7 @@ public class WavedashTransport : Transport
             var msg = messageBuffer[i];
             if (msg.SenderId == hostUserId)
             {
-                OnClientDataReceived?.Invoke(new ArraySegment<byte>(msg.Payload), channel);
+                OnClientDataReceived?.Invoke(msg.Payload, channel);
             }
         }
     }
@@ -312,7 +312,7 @@ public class WavedashTransport : Transport
             var msg = messageBuffer[i];
             if (userIdToConnection.TryGetValue(msg.SenderId, out int connId))
             {
-                OnServerDataReceived?.Invoke(connId, new ArraySegment<byte>(msg.Payload), channel);
+                OnServerDataReceived?.Invoke(connId, msg.Payload, channel);
             }
         }
     }
