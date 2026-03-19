@@ -15,7 +15,7 @@ namespace Wavedash
     {
         public string SenderId;
         public int Channel;
-        public byte[] Payload;
+        public ArraySegment<byte> Payload;
     }
 
     /// <summary>
@@ -585,6 +585,7 @@ namespace Wavedash
         // Sized to drain an entire full channel queue in one call.
         private static byte[] _p2pDrainBuffer;
 
+
         /// <summary>
         /// Broadcasts a P2P message to all connected peers.
         /// </summary>
@@ -760,18 +761,13 @@ namespace Wavedash
                 return null;
             }
 
-            // Copy payload
-            byte[] payload = new byte[dataLength];
-            if (dataLength > 0)
-            {
-                Array.Copy(buffer, payloadOffset, payload, 0, dataLength);
-            }
-
+            // Reference payload directly in the drain buffer (no copy).
+            // Safe because callers consume messages before the next drain call.
             return new P2PMessage
             {
                 SenderId = senderId,
                 Channel = msgChannel,
-                Payload = payload
+                Payload = new ArraySegment<byte>(buffer, payloadOffset, dataLength)
             };
         }
 
