@@ -63,7 +63,7 @@ namespace Wavedash
         #region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
-        private static extern void WavedashJS_Init(string configJson);
+        private static extern void WavedashJS_Init(string configJson, string persistentDataPath);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_ReadyForEvents();
@@ -314,7 +314,8 @@ namespace Wavedash
             _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
 
             string configJson = JsonConvert.SerializeObject(config);
-            WavedashJS_Init(configJson);
+            string persistentDataPath = Application.persistentDataPath;
+            WavedashJS_Init(configJson, persistentDataPath);
 
             // Read P2P config from JS SDK (reflects messageSize/maxIncomingMessages in P2PConfig)
             MAX_PAYLOAD_SIZE = WavedashJS_GetP2PMaxPayloadSize();
