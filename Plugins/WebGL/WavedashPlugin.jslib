@@ -55,8 +55,9 @@ mergeInto(LibraryManager.library, {
   },
 
   // === Exports ===
-  WavedashJS_Init: function (configPtr) {
+  WavedashJS_Init: function (configPtr, persistentDataPathPtr) {
     var configJson = UTF8ToString(configPtr);
+    var persistentDataPath = UTF8ToString(persistentDataPathPtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.init === 'function' &&
@@ -65,7 +66,7 @@ mergeInto(LibraryManager.library, {
         window.WavedashJS.init(JSON.parse(configJson));
         // Attach FS to the engine instance so WavedashJS has access to emscripten file system.
         // Turns out Unity games can start BEFORE window.createUnityInstance finishes.
-        window.WavedashJS.setEngineInstance({ type: "UNITY", FS: FS });
+        window.WavedashJS.setEngineInstance({ type: "UNITY", FS: FS, unityPersistentDataPath: persistentDataPath });
       }
       catch (e) { console.error('Failed to parse WavedashJS config:', e); }
     }
