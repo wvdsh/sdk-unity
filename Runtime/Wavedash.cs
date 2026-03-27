@@ -119,6 +119,12 @@ namespace Wavedash
         private static extern int WavedashJS_SendLobbyMessage(string lobbyId, string message);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_GetLobbyInviteLink(
+            int copyToClipboard,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
         private static extern void WavedashJS_InviteUserToLobby(
             string lobbyId,
             string userId,
@@ -542,6 +548,19 @@ namespace Wavedash
             return false;
 #endif
         }
+
+        /// <summary>
+        /// Gets an invite link for the current lobby.
+        /// </summary>
+        /// <param name="copyToClipboard">If true, the link will also be copied to the clipboard.</param>
+        /// <returns>The invite link string, or null on failure.</returns>
+        public static Task<string> GetLobbyInviteLink(bool copyToClipboard = false) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_GetLobbyInviteLink(copyToClipboard ? 1 : 0, fnPtr, requestId));
+#else
+            Task.FromResult<string>(null);
+#endif
 
         /// <summary>
         /// Invites a user to join a lobby.
