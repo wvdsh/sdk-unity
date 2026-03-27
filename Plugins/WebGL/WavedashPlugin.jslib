@@ -485,6 +485,26 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_GetLobbyInviteLink__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetLobbyInviteLink: function (copyToClipboard, callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+    var copyToClipboardBool = copyToClipboard !== 0;
+    var args = { copyToClipboard: copyToClipboardBool };
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.getLobbyInviteLink) {
+          return Promise.reject("WavedashJS.getLobbyInviteLink not available");
+        }
+        return window.WavedashJS.getLobbyInviteLink(copyToClipboardBool);
+      },
+      cb,
+      requestId,
+      args
+    );
+  },
+
   WavedashJS_InviteUserToLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_InviteUserToLobby: function (lobbyIdPtr, userIdPtr, callbackPtr, requestIdPtr) {
     var lobbyId = UTF8ToString(lobbyIdPtr);
