@@ -84,9 +84,9 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.isReady === 'function') {
-      return window.WavedashJS.isReady() ? 1 : 0;
+      return !!window.WavedashJS.isReady();
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_GetUser__deps: ['$AllocUTF8'],
@@ -534,9 +534,9 @@ mergeInto(LibraryManager.library, {
       // operates entirely in JS heap (no Emscripten heap allocations).
       var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
       var isReliable = reliable !== 0;
-      return window.WavedashJS.broadcastP2PMessage(appChannel, isReliable, payload) ? 1 : 0;
+      return !!window.WavedashJS.broadcastP2PMessage(appChannel, isReliable, payload);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_SendP2PMessage: function (targetUserIdPtr, appChannel, reliable, payloadPtr, payloadLength) {
@@ -546,9 +546,9 @@ mergeInto(LibraryManager.library, {
       // operates entirely in JS heap (no Emscripten heap allocations).
       var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
       var isReliable = reliable !== 0;
-      return window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload, payloadLength) ? 1 : 0;
+      return !!window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload, payloadLength);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_GetP2PMaxPayloadSize: function () {
@@ -619,9 +619,9 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setLobbyData === 'function') {
-      return window.WavedashJS.setLobbyData(lobbyId, key, value) ? 1 : 0;
+      return !!window.WavedashJS.setLobbyData(lobbyId, key, value);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_GetLobbyUsers__deps: ['$AllocUTF8'],
@@ -654,9 +654,9 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.sendLobbyMessage === 'function') {
-      return window.WavedashJS.sendLobbyMessage(lobbyId, message) ? 1 : 0;
+      return !!window.WavedashJS.sendLobbyMessage(lobbyId, message);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_ToggleOverlay: function () {
@@ -747,13 +747,14 @@ mergeInto(LibraryManager.library, {
     );
   },
 
-  WavedashJS_SetStatInt: function (statNamePtr, value) {
+  WavedashJS_SetStatInt: function (statNamePtr, value, storeNow) {
     var statName = UTF8ToString(statNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setStat === 'function') {
-      window.WavedashJS.setStat(statName, value);
+      return !!window.WavedashJS.setStat(statName, value, !!storeNow);
     }
+    return false;
   },
 
   WavedashJS_GetStatInt: function (statNamePtr) {
@@ -767,13 +768,14 @@ mergeInto(LibraryManager.library, {
     return -1;
   },
 
-  WavedashJS_SetStatFloat: function (statNamePtr, value) {
+  WavedashJS_SetStatFloat: function (statNamePtr, value, storeNow) {
     var statName = UTF8ToString(statNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setStat === 'function') {
-      window.WavedashJS.setStat(statName, value);
+      return !!window.WavedashJS.setStat(statName, value, !!storeNow);
     }
+    return false;
   },
 
   WavedashJS_GetStatFloat: function (statNamePtr) {
@@ -792,8 +794,9 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setAchievement === 'function') {
-      window.WavedashJS.setAchievement(achievementName);
+      return !!window.WavedashJS.setAchievement(achievementName);
     }
+    return false;
   },
 
   WavedashJS_GetAchievement: function (achievementNamePtr) {
@@ -801,18 +804,18 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.getAchievement === 'function') {
-      return window.WavedashJS.getAchievement(achievementName) ? 1 : 0;
+      return !!window.WavedashJS.getAchievement(achievementName);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_StoreStats: function () {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.storeStats === 'function') {
-      return window.WavedashJS.storeStats() ? 1 : 0;
+      return !!window.WavedashJS.storeStats();
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_UpdateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
