@@ -763,9 +763,9 @@ mergeInto(LibraryManager.library, {
         window.WavedashJS &&
         typeof window.WavedashJS.getStat === 'function') {
       var val = window.WavedashJS.getStat(statName);
-      return typeof val === 'number' ? val : -1;
+      return typeof val === 'number' ? val : 0;
     }
-    return -1;
+    return 0;
   },
 
   WavedashJS_SetStatFloat: function (statNamePtr, value, storeNow) {
@@ -784,9 +784,9 @@ mergeInto(LibraryManager.library, {
         window.WavedashJS &&
         typeof window.WavedashJS.getStat === 'function') {
       var val = window.WavedashJS.getStat(statName);
-      return typeof val === 'number' ? val : -1.0;
+      return typeof val === 'number' ? val : 0.0;
     }
-    return -1.0;
+    return 0.0;
   },
 
   WavedashJS_SetAchievement: function (achievementNamePtr) {
