@@ -69,7 +69,7 @@ namespace Wavedash
         private static extern void WavedashJS_ReadyForEvents();
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_IsReady();
+        private static extern bool WavedashJS_IsReady();
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
@@ -107,7 +107,7 @@ namespace Wavedash
         private static extern string WavedashJS_GetLobbyData(string lobbyId, string key);
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_SetLobbyData(string lobbyId, string key, string value);
+        private static extern bool WavedashJS_SetLobbyData(string lobbyId, string key, string value);
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetLobbyUsers(string lobbyId);
@@ -116,7 +116,7 @@ namespace Wavedash
         private static extern int WavedashJS_GetNumLobbyUsers(string lobbyId);
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_SendLobbyMessage(string lobbyId, string message);
+        private static extern bool WavedashJS_SendLobbyMessage(string lobbyId, string message);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_GetLobbyInviteLink(
@@ -150,25 +150,25 @@ namespace Wavedash
         private static extern void WavedashJS_RequestStats(IntPtr callbackPtr, string requestId);
 
         [DllImport("__Internal")]
-        private static extern void WavedashJS_SetStatInt(string statName, int value);
+        private static extern bool WavedashJS_SetStatInt(string statName, int value, bool storeNow);
 
         [DllImport("__Internal")]
         private static extern int WavedashJS_GetStatInt(string statName);
 
         [DllImport("__Internal")]
-        private static extern void WavedashJS_SetStatFloat(string statName, float value);
+        private static extern bool WavedashJS_SetStatFloat(string statName, float value, bool storeNow);
 
         [DllImport("__Internal")]
         private static extern float WavedashJS_GetStatFloat(string statName);
 
         [DllImport("__Internal")]
-        private static extern void WavedashJS_SetAchievement(string achievementName);
+        private static extern bool WavedashJS_SetAchievement(string achievementName);
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_GetAchievement(string achievementName);
+        private static extern bool WavedashJS_GetAchievement(string achievementName);
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_StoreStats();
+        private static extern bool WavedashJS_StoreStats();
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_UpdateUGCItem(
@@ -181,14 +181,14 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_BroadcastP2PMessage(
+        private static extern bool WavedashJS_BroadcastP2PMessage(
             int appChannel,
             bool reliable,
             IntPtr payload,
             int payloadLength);
 
         [DllImport("__Internal")]
-        private static extern int WavedashJS_SendP2PMessage(
+        private static extern bool WavedashJS_SendP2PMessage(
             string targetUserId,
             int appChannel,
             bool reliable,
@@ -344,7 +344,7 @@ namespace Wavedash
         public static bool IsReady()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_IsReady() == 1;
+            return WavedashJS_IsReady();
 #else
             return false;
 #endif
@@ -490,7 +490,7 @@ namespace Wavedash
         public static bool SetLobbyData(string lobbyId, string key, string value)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_SetLobbyData(lobbyId, key, value) == 1;
+            return WavedashJS_SetLobbyData(lobbyId, key, value);
 #else
             return false;
 #endif
@@ -544,7 +544,7 @@ namespace Wavedash
         public static bool SendLobbyChatMessage(string lobbyId, string message)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_SendLobbyMessage(lobbyId, message) == 1;
+            return WavedashJS_SendLobbyMessage(lobbyId, message);
 #else
             return false;
 #endif
@@ -627,7 +627,7 @@ namespace Wavedash
             try
             {
                 IntPtr ptr = handle.AddrOfPinnedObject() + payload.Offset;
-                return WavedashJS_BroadcastP2PMessage(channel, reliable, ptr, payload.Count) == 1;
+                return WavedashJS_BroadcastP2PMessage(channel, reliable, ptr, payload.Count);
             }
             finally
             {
@@ -660,7 +660,7 @@ namespace Wavedash
             try
             {
                 IntPtr ptr = handle.AddrOfPinnedObject() + payload.Offset;
-                return WavedashJS_SendP2PMessage(targetUserId, channel, reliable, ptr, payload.Count) == 1;
+                return WavedashJS_SendP2PMessage(targetUserId, channel, reliable, ptr, payload.Count);
             }
             finally
             {
@@ -997,14 +997,12 @@ namespace Wavedash
         /// <param name="statName">The identifier of the stat.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="storeNow">If true, immediately persists to the server. Otherwise, batched.</param>
-        public static void SetStatInt(string statName, int value, bool storeNow = false)
+        public static bool SetStatInt(string statName, int value, bool storeNow = false)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            WavedashJS_SetStatInt(statName, value);
-            if (storeNow)
-            {
-                WavedashJS_StoreStats();
-            }
+            return WavedashJS_SetStatInt(statName, value, storeNow);
+#else
+            return false;
 #endif
         }
 
@@ -1029,14 +1027,12 @@ namespace Wavedash
         /// <param name="statName">The identifier of the stat.</param>
         /// <param name="value">The float value to set.</param>
         /// <param name="storeNow">If true, immediately persists to the server. Otherwise, batched.</param>
-        public static void SetStatFloat(string statName, float value, bool storeNow = false)
+        public static bool SetStatFloat(string statName, float value, bool storeNow = false)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            WavedashJS_SetStatFloat(statName, value);
-            if (storeNow)
-            {
-                WavedashJS_StoreStats();
-            }
+            return WavedashJS_SetStatFloat(statName, value, storeNow);
+#else
+            return false;
 #endif
         }
 
@@ -1059,11 +1055,12 @@ namespace Wavedash
         /// Unlocks an achievement and persists it to the server.
         /// </summary>
         /// <param name="achievementName">The identifier of the achievement.</param>
-        public static void SetAchievement(string achievementName)
+        public static bool SetAchievement(string achievementName)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            WavedashJS_SetAchievement(achievementName);
-            WavedashJS_StoreStats();
+            return WavedashJS_SetAchievement(achievementName);
+#else
+            return false;
 #endif
         }
 
@@ -1076,7 +1073,7 @@ namespace Wavedash
         public static bool GetAchievement(string achievementName)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_GetAchievement(achievementName) == 1;
+            return WavedashJS_GetAchievement(achievementName);
 #else
             return false;
 #endif
@@ -1091,7 +1088,7 @@ namespace Wavedash
         public static bool StoreStats()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_StoreStats() == 1;
+            return WavedashJS_StoreStats();
 #else
             return false;
 #endif
