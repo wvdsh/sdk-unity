@@ -80,15 +80,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  WavedashJS_IsReady: function () {
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.isReady === 'function') {
-      return !!window.WavedashJS.isReady();
-    }
-    return false;
-  },
-
   WavedashJS_GetUser__deps: ['$AllocUTF8'],
   WavedashJS_GetUser: function () {
     if (typeof window !== 'undefined' &&
