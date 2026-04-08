@@ -69,9 +69,6 @@ namespace Wavedash
         private static extern void WavedashJS_ReadyForEvents();
 
         [DllImport("__Internal")]
-        private static extern bool WavedashJS_IsReady();
-
-        [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
 
         // Lobby Functions
@@ -341,14 +338,6 @@ namespace Wavedash
 #endif
         }
 
-        public static bool IsReady()
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_IsReady();
-#else
-            return false;
-#endif
-        }
 
         /// <summary>
         /// Gets the current user data. Results are cached after the first call.
@@ -1080,9 +1069,7 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Manually triggers a save of pending stats to the server.
-        /// Usually not needed as stats are auto-saved when using SetStatInt with storeNow=true
-        /// or when calling SetAchievement.
+        /// Manually triggers a save of pending stats to the server. Not needed if you use storeNow=true when setting stats.
         /// </summary>
         /// <returns>True if stats were stored successfully.</returns>
         public static bool StoreStats()
