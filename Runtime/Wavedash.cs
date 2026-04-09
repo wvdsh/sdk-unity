@@ -70,6 +70,9 @@ namespace Wavedash
         private static extern void WavedashJS_Init(string configJson);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_ReadyForEvents();
+
+        [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
 
         // Lobby Functions
@@ -354,6 +357,18 @@ namespace Wavedash
             _p2pDrainBuffer = null; // Force reallocation with new sizes on next drain
 #else
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
+#endif
+        }
+
+        /// <summary>
+        /// Signal that the game is ready to receive events (LobbyJoined, LobbyMessage, etc).
+        /// Called automatically by Init() unless "deferEvents" is set to true in the config.
+        /// If deferEvents is true, call this manually after your pre-game setup is complete.
+        /// </summary>
+        public static void ReadyForEvents()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WavedashJS_ReadyForEvents();
 #endif
         }
 
