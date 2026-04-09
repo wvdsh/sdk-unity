@@ -75,6 +75,9 @@ namespace Wavedash
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
 
+        [DllImport("__Internal")]
+        private static extern string WavedashJS_GetLaunchParams();
+
         // Lobby Functions
         [DllImport("__Internal")]
         private static extern void WavedashJS_CreateLobby(
@@ -370,6 +373,29 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             WavedashJS_ReadyForEvents();
 #endif
+        }
+
+        /// <summary>
+        /// Returns the launch params that were passed via URL when the game was launched.
+        /// (e.g. {"lobby": "lobbyId123"}).
+        /// </summary>
+        public static Dictionary<string, string> GetLaunchParams()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            string json = WavedashJS_GetLaunchParams();
+            if (!string.IsNullOrEmpty(json))
+            {
+                try
+                {
+                    return JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to parse launch params: {e.Message}");
+                }
+            }
+#endif
+            return new Dictionary<string, string>();
         }
 
         /// <summary>
