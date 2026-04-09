@@ -1136,13 +1136,13 @@ namespace Wavedash
         /// Note: You must call <see cref="RequestStats"/> first to load stats from the server.
         /// </summary>
         /// <param name="statName">The identifier of the stat.</param>
-        /// <returns>The stat value, or -1 if not found.</returns>
+        /// <returns>The stat value, or 0 if not found.</returns>
         public static int GetStatInt(string statName)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetStatInt(statName);
 #else
-            return -1;
+            return 0;
 #endif
         }
 
@@ -1166,13 +1166,13 @@ namespace Wavedash
         /// Note: You must call <see cref="RequestStats"/> first to load stats from the server.
         /// </summary>
         /// <param name="statName">The identifier of the stat.</param>
-        /// <returns>The stat value, or -1.0f if not found.</returns>
+        /// <returns>The stat value, or 0.0f if not found.</returns>
         public static float GetStatFloat(string statName)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetStatFloat(statName);
 #else
-            return -1.0f;
+            return 0.0f;
 #endif
         }
 
