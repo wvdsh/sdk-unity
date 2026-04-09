@@ -8,7 +8,7 @@ mergeInto(LibraryManager.library, {
       cb(buf);
       _free(buf);
     },
-    run: function (getPromise, cb, requestId, args) {
+    run: function (getPromise, cb, requestId) {
       var p;
       try {
         p = getPromise();
@@ -16,7 +16,6 @@ mergeInto(LibraryManager.library, {
         return WVD_Helpers.send(cb, requestId, {
           success: false,
           data: null,
-          args: args,
           message: String(e)
         });
       }
@@ -26,7 +25,6 @@ mergeInto(LibraryManager.library, {
         WVD_Helpers.send(cb, requestId, {
           success: false,
           data: null,
-          args: args,
           message: String(err)
         });
       });
@@ -55,18 +53,31 @@ mergeInto(LibraryManager.library, {
   },
 
   // === Exports ===
-  WavedashJS_Init: function (configPtr, persistentDataPathPtr) {
-    var configJson = UTF8ToString(configPtr);
+
+  // Called automatically at Unity startup via [RuntimeInitializeOnLoadMethod].
+  // Sets up the engine instance (FS, SendMessage, persistentDataPath) so file
+  // operations and other pre-init SDK methods work before Init() is called.
+  WavedashJS_SetupEngine: function (persistentDataPathPtr) {
     var persistentDataPath = UTF8ToString(persistentDataPathPtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
-        typeof window.WavedashJS.init === 'function' &&
         typeof window.WavedashJS.setEngineInstance === 'function') {
+      window.WavedashJS.setEngineInstance({
+        type: "UNITY",
+        FS: FS,
+        SendMessage: SendMessage,
+        unityPersistentDataPath: persistentDataPath
+      });
+    }
+  },
+
+  WavedashJS_Init: function (configPtr) {
+    var configJson = UTF8ToString(configPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.init === 'function') {
       try {
         window.WavedashJS.init(JSON.parse(configJson));
-        // Attach FS to the engine instance so WavedashJS has access to emscripten file system.
-        // Turns out Unity games can start BEFORE window.createUnityInstance finishes.
-        window.WavedashJS.setEngineInstance({ type: "UNITY", FS: FS, unityPersistentDataPath: persistentDataPath });
       }
       catch (e) { console.error('Failed to parse WavedashJS config:', e); }
     }
@@ -78,15 +89,6 @@ mergeInto(LibraryManager.library, {
         typeof window.WavedashJS.readyForEvents === 'function') {
       window.WavedashJS.readyForEvents();
     }
-  },
-
-  WavedashJS_IsReady: function () {
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.isReady === 'function') {
-      return window.WavedashJS.isReady() ? 1 : 0;
-    }
-    return 0;
   },
 
   WavedashJS_GetUser__deps: ['$AllocUTF8'],
@@ -102,14 +104,25 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  WavedashJS_GetLaunchParams__deps: ['$AllocUTF8'],
+  WavedashJS_GetLaunchParams: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLaunchParams === 'function') {
+      var params = window.WavedashJS.getLaunchParams();
+      if (params) {
+        return AllocUTF8(JSON.stringify(params));
+      }
+    }
+    return 0;
+  },
+
   WavedashJS_GetLeaderboard__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_GetLeaderboard: function (leaderboardNamePtr, callbackPtr, requestIdPtr) {
     var lbName = UTF8ToString(leaderboardNamePtr);
     var requestId = UTF8ToString(requestIdPtr);
 
     var cb = __getWasmFunction(callbackPtr);
-
-    var args = { name: lbName };
 
     WVD_Helpers.run(
       function () {
@@ -119,8 +132,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getLeaderboard(lbName);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -131,8 +143,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { name: lbName, sortOrder: sortMethod, displayType: displayType };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getOrCreateLeaderboard) {
@@ -141,8 +151,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -155,12 +164,7 @@ mergeInto(LibraryManager.library, {
     var cb = __getWasmFunction(callbackPtr);
   
     var keepBestBool = keepBest !== 0;
-  
-    var args = { leaderboardId: lbId, score: score, keepBest: keepBestBool };
-    if (ugcId && ugcId.length > 0) {
-      args.ugcId = ugcId;
-    }
-  
+
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadLeaderboardScore) {
@@ -173,8 +177,7 @@ mergeInto(LibraryManager.library, {
         }
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -185,8 +188,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { leaderboardId: lbId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getMyLeaderboardEntries) {
@@ -195,8 +196,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getMyLeaderboardEntries(lbId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -207,8 +207,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { leaderboardId: lbId, offset: offset, limit: limit };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntries) {
@@ -217,8 +215,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -229,8 +226,6 @@ mergeInto(LibraryManager.library, {
     
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { leaderboardId: lbId, countAhead: countAhead, countBehind: countBehind };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntriesAroundUser) {
@@ -239,8 +234,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -270,8 +264,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadRemoteFile) {
@@ -280,8 +272,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.uploadRemoteFile(filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -292,8 +283,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteFile) {
@@ -302,8 +291,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.downloadRemoteFile(filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -314,8 +302,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { path: path };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteDirectory) {
@@ -324,8 +310,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.downloadRemoteDirectory(path);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -336,8 +321,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { path: path };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listRemoteDirectory) {
@@ -346,8 +329,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listRemoteDirectory(path);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -363,8 +345,6 @@ mergeInto(LibraryManager.library, {
     // Use -1 as sentinel for "undefined" visibility
     var vis = visibility < 0 ? undefined : visibility;
 
-    var args = { ugcType, title, description, visibility: vis, filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createUGCItem) {
@@ -373,8 +353,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.createUGCItem(ugcType, title, description, vis, filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -386,8 +365,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { ugcId, filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.downloadUGCItem) {
@@ -396,8 +373,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.downloadUGCItem(ugcId, filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -409,8 +385,6 @@ mergeInto(LibraryManager.library, {
     // maxPlayers can be <= 0 to indicate null/undefined
     var mp = maxPlayers > 0 ? maxPlayers : undefined;
 
-    var args = { visibility: visibility, maxPlayers: mp };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createLobby) {
@@ -419,8 +393,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.createLobby(visibility, mp);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -430,8 +403,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { lobbyId: lobbyId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.joinLobby) {
@@ -440,8 +411,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.joinLobby(lobbyId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -451,8 +421,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { lobbyId: lobbyId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.leaveLobby) {
@@ -461,8 +429,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.leaveLobby(lobbyId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -471,7 +438,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
     var friendsOnlyBool = friendsOnly !== 0;
-    var args = { friendsOnly: friendsOnlyBool };
 
     WVD_Helpers.run(
       function () {
@@ -481,8 +447,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listAvailableLobbies(friendsOnlyBool);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -491,7 +456,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
     var copyToClipboardBool = copyToClipboard !== 0;
-    var args = { copyToClipboard: copyToClipboardBool };
 
     WVD_Helpers.run(
       function () {
@@ -501,8 +465,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getLobbyInviteLink(copyToClipboardBool);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -513,8 +476,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { lobbyId: lobbyId, userId: userId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.inviteUserToLobby) {
@@ -523,8 +484,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.inviteUserToLobby(lobbyId, userId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -534,9 +494,9 @@ mergeInto(LibraryManager.library, {
       // operates entirely in JS heap (no Emscripten heap allocations).
       var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
       var isReliable = reliable !== 0;
-      return window.WavedashJS.broadcastP2PMessage(appChannel, isReliable, payload) ? 1 : 0;
+      return !!window.WavedashJS.broadcastP2PMessage(appChannel, isReliable, payload);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_SendP2PMessage: function (targetUserIdPtr, appChannel, reliable, payloadPtr, payloadLength) {
@@ -546,9 +506,9 @@ mergeInto(LibraryManager.library, {
       // operates entirely in JS heap (no Emscripten heap allocations).
       var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
       var isReliable = reliable !== 0;
-      return window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload, payloadLength) ? 1 : 0;
+      return !!window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload, payloadLength);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_GetP2PMaxPayloadSize: function () {
@@ -597,8 +557,8 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
-  WavedashJS_GetLobbyData__deps: ['$AllocUTF8'],
-  WavedashJS_GetLobbyData: function (lobbyIdPtr, keyPtr) {
+  WavedashJS_GetLobbyDataString__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyDataString: function (lobbyIdPtr, keyPtr) {
     var lobbyId = UTF8ToString(lobbyIdPtr);
     var key = UTF8ToString(keyPtr);
     if (typeof window !== 'undefined' &&
@@ -612,16 +572,73 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
-  WavedashJS_SetLobbyData: function (lobbyIdPtr, keyPtr, valuePtr) {
+  WavedashJS_GetLobbyDataInt: function (lobbyIdPtr, keyPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyData === 'function') {
+      var val = window.WavedashJS.getLobbyData(lobbyId, key);
+      return typeof val === 'number' ? val : 0;
+    }
+    return 0;
+  },
+
+  WavedashJS_GetLobbyDataFloat: function (lobbyIdPtr, keyPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLobbyData === 'function') {
+      var val = window.WavedashJS.getLobbyData(lobbyId, key);
+      return typeof val === 'number' ? val : 0.0;
+    }
+    return 0.0;
+  },
+
+  WavedashJS_SetLobbyDataString: function (lobbyIdPtr, keyPtr, valuePtr) {
     var lobbyId = UTF8ToString(lobbyIdPtr);
     var key = UTF8ToString(keyPtr);
     var value = UTF8ToString(valuePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setLobbyData === 'function') {
-      return window.WavedashJS.setLobbyData(lobbyId, key, value) ? 1 : 0;
+      return !!window.WavedashJS.setLobbyData(lobbyId, key, value);
     }
-    return 0;
+    return false;
+  },
+
+  WavedashJS_SetLobbyDataInt: function (lobbyIdPtr, keyPtr, value) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setLobbyData === 'function') {
+      return !!window.WavedashJS.setLobbyData(lobbyId, key, value);
+    }
+    return false;
+  },
+
+  WavedashJS_SetLobbyDataFloat: function (lobbyIdPtr, keyPtr, value) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.setLobbyData === 'function') {
+      return !!window.WavedashJS.setLobbyData(lobbyId, key, value);
+    }
+    return false;
+  },
+
+  WavedashJS_DeleteLobbyData: function (lobbyIdPtr, keyPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var key = UTF8ToString(keyPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.deleteLobbyData === 'function') {
+      return !!window.WavedashJS.deleteLobbyData(lobbyId, key);
+    }
+    return false;
   },
 
   WavedashJS_GetLobbyUsers__deps: ['$AllocUTF8'],
@@ -654,9 +671,9 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.sendLobbyMessage === 'function') {
-      return window.WavedashJS.sendLobbyMessage(lobbyId, message) ? 1 : 0;
+      return !!window.WavedashJS.sendLobbyMessage(lobbyId, message);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_ToggleOverlay: function () {
@@ -712,8 +729,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = {};
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listFriends) {
@@ -722,8 +737,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listFriends();
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -731,8 +745,6 @@ mergeInto(LibraryManager.library, {
   WavedashJS_RequestStats: function (callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
-
-    var args = {};
 
     WVD_Helpers.run(
       function () {
@@ -742,18 +754,18 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.requestStats();
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
-  WavedashJS_SetStatInt: function (statNamePtr, value) {
+  WavedashJS_SetStatInt: function (statNamePtr, value, storeNow) {
     var statName = UTF8ToString(statNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setStat === 'function') {
-      window.WavedashJS.setStat(statName, value);
+      return !!window.WavedashJS.setStat(statName, value, !!storeNow);
     }
+    return false;
   },
 
   WavedashJS_GetStatInt: function (statNamePtr) {
@@ -762,18 +774,19 @@ mergeInto(LibraryManager.library, {
         window.WavedashJS &&
         typeof window.WavedashJS.getStat === 'function') {
       var val = window.WavedashJS.getStat(statName);
-      return typeof val === 'number' ? val : -1;
+      return typeof val === 'number' ? val : 0;
     }
-    return -1;
+    return 0;
   },
 
-  WavedashJS_SetStatFloat: function (statNamePtr, value) {
+  WavedashJS_SetStatFloat: function (statNamePtr, value, storeNow) {
     var statName = UTF8ToString(statNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setStat === 'function') {
-      window.WavedashJS.setStat(statName, value);
+      return !!window.WavedashJS.setStat(statName, value, !!storeNow);
     }
+    return false;
   },
 
   WavedashJS_GetStatFloat: function (statNamePtr) {
@@ -782,18 +795,19 @@ mergeInto(LibraryManager.library, {
         window.WavedashJS &&
         typeof window.WavedashJS.getStat === 'function') {
       var val = window.WavedashJS.getStat(statName);
-      return typeof val === 'number' ? val : -1.0;
+      return typeof val === 'number' ? val : 0.0;
     }
-    return -1.0;
+    return 0.0;
   },
 
-  WavedashJS_SetAchievement: function (achievementNamePtr) {
+  WavedashJS_SetAchievement: function (achievementNamePtr, storeNow) {
     var achievementName = UTF8ToString(achievementNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setAchievement === 'function') {
-      window.WavedashJS.setAchievement(achievementName);
+      return !!window.WavedashJS.setAchievement(achievementName, !!storeNow);
     }
+    return false;
   },
 
   WavedashJS_GetAchievement: function (achievementNamePtr) {
@@ -801,18 +815,18 @@ mergeInto(LibraryManager.library, {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.getAchievement === 'function') {
-      return window.WavedashJS.getAchievement(achievementName) ? 1 : 0;
+      return !!window.WavedashJS.getAchievement(achievementName);
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_StoreStats: function () {
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.storeStats === 'function') {
-      return window.WavedashJS.storeStats() ? 1 : 0;
+      return !!window.WavedashJS.storeStats();
     }
-    return 0;
+    return false;
   },
 
   WavedashJS_UpdateUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
@@ -829,8 +843,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { ugcId, title, description, visibility: vis, filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.updateUGCItem) {
@@ -839,8 +851,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.updateUGCItem(ugcId, title, description, vis, filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 });
