@@ -8,7 +8,7 @@ mergeInto(LibraryManager.library, {
       cb(buf);
       _free(buf);
     },
-    run: function (getPromise, cb, requestId, args) {
+    run: function (getPromise, cb, requestId) {
       var p;
       try {
         p = getPromise();
@@ -16,7 +16,6 @@ mergeInto(LibraryManager.library, {
         return WVD_Helpers.send(cb, requestId, {
           success: false,
           data: null,
-          args: args,
           message: String(e)
         });
       }
@@ -26,7 +25,6 @@ mergeInto(LibraryManager.library, {
         WVD_Helpers.send(cb, requestId, {
           success: false,
           data: null,
-          args: args,
           message: String(err)
         });
       });
@@ -105,8 +103,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { name: lbName };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getLeaderboard) {
@@ -115,8 +111,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getLeaderboard(lbName);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -127,8 +122,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { name: lbName, sortOrder: sortMethod, displayType: displayType };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getOrCreateLeaderboard) {
@@ -137,8 +130,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getOrCreateLeaderboard(lbName, sortMethod, displayType);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -151,12 +143,7 @@ mergeInto(LibraryManager.library, {
     var cb = __getWasmFunction(callbackPtr);
   
     var keepBestBool = keepBest !== 0;
-  
-    var args = { leaderboardId: lbId, score: score, keepBest: keepBestBool };
-    if (ugcId && ugcId.length > 0) {
-      args.ugcId = ugcId;
-    }
-  
+
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadLeaderboardScore) {
@@ -169,8 +156,7 @@ mergeInto(LibraryManager.library, {
         }
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -181,8 +167,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { leaderboardId: lbId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getMyLeaderboardEntries) {
@@ -191,8 +175,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getMyLeaderboardEntries(lbId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -203,8 +186,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { leaderboardId: lbId, offset: offset, limit: limit };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntries) {
@@ -213,8 +194,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -225,8 +205,6 @@ mergeInto(LibraryManager.library, {
     
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { leaderboardId: lbId, countAhead: countAhead, countBehind: countBehind };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntriesAroundUser) {
@@ -235,8 +213,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -266,8 +243,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadRemoteFile) {
@@ -276,8 +251,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.uploadRemoteFile(filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -288,8 +262,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { filePath: filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteFile) {
@@ -298,8 +270,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.downloadRemoteFile(filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -310,8 +281,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { path: path };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.downloadRemoteDirectory) {
@@ -320,8 +289,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.downloadRemoteDirectory(path);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -332,8 +300,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { path: path };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listRemoteDirectory) {
@@ -342,8 +308,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listRemoteDirectory(path);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -359,8 +324,6 @@ mergeInto(LibraryManager.library, {
     // Use -1 as sentinel for "undefined" visibility
     var vis = visibility < 0 ? undefined : visibility;
 
-    var args = { ugcType, title, description, visibility: vis, filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createUGCItem) {
@@ -369,8 +332,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.createUGCItem(ugcType, title, description, vis, filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -382,8 +344,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { ugcId, filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.downloadUGCItem) {
@@ -392,8 +352,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.downloadUGCItem(ugcId, filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -405,8 +364,6 @@ mergeInto(LibraryManager.library, {
     // maxPlayers can be <= 0 to indicate null/undefined
     var mp = maxPlayers > 0 ? maxPlayers : undefined;
 
-    var args = { visibility: visibility, maxPlayers: mp };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.createLobby) {
@@ -415,8 +372,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.createLobby(visibility, mp);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -426,8 +382,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { lobbyId: lobbyId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.joinLobby) {
@@ -436,8 +390,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.joinLobby(lobbyId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -447,8 +400,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { lobbyId: lobbyId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.leaveLobby) {
@@ -457,8 +408,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.leaveLobby(lobbyId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -467,7 +417,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
     var friendsOnlyBool = friendsOnly !== 0;
-    var args = { friendsOnly: friendsOnlyBool };
 
     WVD_Helpers.run(
       function () {
@@ -477,8 +426,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listAvailableLobbies(friendsOnlyBool);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -487,7 +435,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
     var copyToClipboardBool = copyToClipboard !== 0;
-    var args = { copyToClipboard: copyToClipboardBool };
 
     WVD_Helpers.run(
       function () {
@@ -497,8 +444,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.getLobbyInviteLink(copyToClipboardBool);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -509,8 +455,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { lobbyId: lobbyId, userId: userId };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.inviteUserToLobby) {
@@ -519,8 +463,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.inviteUserToLobby(lobbyId, userId);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -765,8 +708,6 @@ mergeInto(LibraryManager.library, {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = {};
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listFriends) {
@@ -775,8 +716,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.listFriends();
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -784,8 +724,6 @@ mergeInto(LibraryManager.library, {
   WavedashJS_RequestStats: function (callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
-
-    var args = {};
 
     WVD_Helpers.run(
       function () {
@@ -795,8 +733,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.requestStats();
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 
@@ -885,8 +822,6 @@ mergeInto(LibraryManager.library, {
 
     var cb = __getWasmFunction(callbackPtr);
 
-    var args = { ugcId, title, description, visibility: vis, filePath };
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.updateUGCItem) {
@@ -895,8 +830,7 @@ mergeInto(LibraryManager.library, {
         return window.WavedashJS.updateUGCItem(ugcId, title, description, vis, filePath);
       },
       cb,
-      requestId,
-      args
+      requestId
     );
   },
 });
