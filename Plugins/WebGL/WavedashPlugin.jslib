@@ -55,33 +55,33 @@ mergeInto(LibraryManager.library, {
   },
 
   // === Exports ===
-  WavedashJS_Init: function (configPtr, persistentDataPathPtr) {
-    var configJson = UTF8ToString(configPtr);
+
+  // Called automatically at Unity startup via [RuntimeInitializeOnLoadMethod].
+  // Sets up the engine instance (FS, SendMessage, persistentDataPath) so file
+  // operations and other pre-init SDK methods work before Init() is called.
+  WavedashJS_SetupEngine: function (persistentDataPathPtr) {
     var persistentDataPath = UTF8ToString(persistentDataPathPtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
-        typeof window.WavedashJS.init === 'function' &&
         typeof window.WavedashJS.setEngineInstance === 'function') {
-      try {
-        // Attach FS to the engine instance so WavedashJS has access to emscripten file system.
-        // Turns out Unity games can start BEFORE window.createUnityInstance finishes.
-        window.WavedashJS.setEngineInstance({
-          type: "UNITY",
-          FS: FS,
-          SendMessage: SendMessage,
-          unityPersistentDataPath: persistentDataPath
-        });
-        window.WavedashJS.init(JSON.parse(configJson));
-      }
-      catch (e) { console.error('Failed to parse WavedashJS config:', e); }
+      window.WavedashJS.setEngineInstance({
+        type: "UNITY",
+        FS: FS,
+        SendMessage: SendMessage,
+        unityPersistentDataPath: persistentDataPath
+      });
     }
   },
 
-  WavedashJS_ReadyForEvents: function () {
+  WavedashJS_Init: function (configPtr) {
+    var configJson = UTF8ToString(configPtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
-        typeof window.WavedashJS.readyForEvents === 'function') {
-      window.WavedashJS.readyForEvents();
+        typeof window.WavedashJS.init === 'function') {
+      try {
+        window.WavedashJS.init(JSON.parse(configJson));
+      }
+      catch (e) { console.error('Failed to parse WavedashJS config:', e); }
     }
   },
 

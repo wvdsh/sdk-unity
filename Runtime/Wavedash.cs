@@ -64,10 +64,10 @@ namespace Wavedash
         #region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
-        private static extern void WavedashJS_Init(string configJson, string persistentDataPath);
+        private static extern void WavedashJS_SetupEngine(string persistentDataPath);
 
         [DllImport("__Internal")]
-        private static extern void WavedashJS_ReadyForEvents();
+        private static extern void WavedashJS_Init(string configJson);
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUser();
@@ -316,6 +316,21 @@ namespace Wavedash
         #endregion
 
         #region SDK Implementations
+
+        /// <summary>
+        /// Automatically called at Unity startup. Sets up the engine instance
+        /// (FS, SendMessage, persistentDataPath) so SDK methods like file
+        /// operations work before Init() is called by the game.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void SetupEngine()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            EnsureCallbackReceiver();
+            WavedashJS_SetupEngine(Application.persistentDataPath);
+#endif
+        }
+
         /// <summary>
         /// Initialize the Wavedash SDK
         /// </summary>
@@ -327,8 +342,7 @@ namespace Wavedash
             _debug = config.ContainsKey("debug") && config["debug"] as bool? == true;
 
             string configJson = JsonConvert.SerializeObject(config);
-            string persistentDataPath = Application.persistentDataPath;
-            WavedashJS_Init(configJson, persistentDataPath);
+            WavedashJS_Init(configJson);
 
             // Read P2P config from JS SDK (reflects messageSize/maxIncomingMessages in P2PConfig)
             MAX_PAYLOAD_SIZE = WavedashJS_GetP2PMaxPayloadSize();
@@ -342,18 +356,6 @@ namespace Wavedash
             Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
 #endif
         }
-
-        /// <summary>
-        /// Signals to WavedashJS that Unity is ready to receive events.
-        /// Call this after subscribing to all desired event handlers.
-        /// </summary>
-        public static void ReadyForEvents()
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            WavedashJS_ReadyForEvents();
-#endif
-        }
-
 
         /// <summary>
         /// Gets the current user data. Results are cached after the first call.
