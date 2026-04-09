@@ -42,6 +42,7 @@ namespace Wavedash
         public static event Action<Dictionary<string, object>> OnBackendReconnecting;
         // Stats events
         public static event Action<Dictionary<string, object>> OnCurrentStatsReceived;
+        public static event Action<Dictionary<string, object>> OnStatsStored;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -174,7 +175,7 @@ namespace Wavedash
         private static extern float WavedashJS_GetStatFloat(string statName);
 
         [DllImport("__Internal")]
-        private static extern bool WavedashJS_SetAchievement(string achievementName);
+        private static extern bool WavedashJS_SetAchievement(string achievementName, bool storeNow);
 
         [DllImport("__Internal")]
         private static extern bool WavedashJS_GetAchievement(string achievementName);
@@ -1133,13 +1134,14 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Unlocks an achievement and persists it to the server.
+        /// Unlocks an achievement.
         /// </summary>
         /// <param name="achievementName">The identifier of the achievement.</param>
-        public static bool SetAchievement(string achievementName)
+        /// <param name="storeNow">If true, immediately persists to the server (fire-and-forget). Otherwise, call StoreStats() to persist.</param>
+        public static bool SetAchievement(string achievementName, bool storeNow = false)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_SetAchievement(achievementName);
+            return WavedashJS_SetAchievement(achievementName, storeNow);
 #else
             return false;
 #endif
@@ -1459,6 +1461,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("CurrentStatsReceived Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnCurrentStatsReceived);
+            }
+
+            public void StatsStored(string dataJson)
+            {
+                if (_debug) Debug.Log("StatsStored Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnStatsStored);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)

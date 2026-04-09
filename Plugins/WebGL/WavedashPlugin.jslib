@@ -842,12 +842,12 @@ mergeInto(LibraryManager.library, {
     return 0.0;
   },
 
-  WavedashJS_SetAchievement: function (achievementNamePtr) {
+  WavedashJS_SetAchievement: function (achievementNamePtr, storeNow) {
     var achievementName = UTF8ToString(achievementNamePtr);
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.setAchievement === 'function') {
-      return !!window.WavedashJS.setAchievement(achievementName);
+      return !!window.WavedashJS.setAchievement(achievementName, !!storeNow);
     }
     return false;
   },
