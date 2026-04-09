@@ -101,10 +101,25 @@ namespace Wavedash
         private static extern string WavedashJS_GetLobbyHostId(string lobbyId);
 
         [DllImport("__Internal")]
-        private static extern string WavedashJS_GetLobbyData(string lobbyId, string key);
+        private static extern string WavedashJS_GetLobbyDataString(string lobbyId, string key);
 
         [DllImport("__Internal")]
-        private static extern bool WavedashJS_SetLobbyData(string lobbyId, string key, string value);
+        private static extern int WavedashJS_GetLobbyDataInt(string lobbyId, string key);
+
+        [DllImport("__Internal")]
+        private static extern float WavedashJS_GetLobbyDataFloat(string lobbyId, string key);
+
+        [DllImport("__Internal")]
+        private static extern bool WavedashJS_SetLobbyDataString(string lobbyId, string key, string value);
+
+        [DllImport("__Internal")]
+        private static extern bool WavedashJS_SetLobbyDataInt(string lobbyId, string key, int value);
+
+        [DllImport("__Internal")]
+        private static extern bool WavedashJS_SetLobbyDataFloat(string lobbyId, string key, float value);
+
+        [DllImport("__Internal")]
+        private static extern bool WavedashJS_DeleteLobbyData(string lobbyId, string key);
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetLobbyUsers(string lobbyId);
@@ -455,31 +470,108 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Gets a value from the lobby's metadata.
+        /// Gets a string value from the lobby's metadata.
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
         /// <returns>The value as a string, or null if not found.</returns>
-        public static string GetLobbyData(string lobbyId, string key)
+        public static string GetLobbyDataString(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_GetLobbyData(lobbyId, key);
+            return WavedashJS_GetLobbyDataString(lobbyId, key);
 #else
             return null;
 #endif
         }
 
         /// <summary>
-        /// Sets a value in the lobby's metadata. Only the host can set lobby data.
+        /// Gets an integer value from the lobby's metadata.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to retrieve.</param>
+        /// <returns>The integer value, or 0 if not found.</returns>
+        public static int GetLobbyDataInt(string lobbyId, string key)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLobbyDataInt(lobbyId, key);
+#else
+            return 0;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a float value from the lobby's metadata.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to retrieve.</param>
+        /// <returns>The float value, or 0.0f if not found.</returns>
+        public static float GetLobbyDataFloat(string lobbyId, string key)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLobbyDataFloat(lobbyId, key);
+#else
+            return 0.0f;
+#endif
+        }
+
+        /// <summary>
+        /// Sets a string value in the lobby's metadata. Only the host can set lobby data.
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to set.</param>
-        /// <param name="value">The value to set.</param>
+        /// <param name="value">The string value to set.</param>
         /// <returns>True if the operation was successful.</returns>
         public static bool SetLobbyData(string lobbyId, string key, string value)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_SetLobbyData(lobbyId, key, value);
+            return WavedashJS_SetLobbyDataString(lobbyId, key, value);
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Sets an integer value in the lobby's metadata. Only the host can set lobby data.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to set.</param>
+        /// <param name="value">The integer value to set.</param>
+        /// <returns>True if the operation was successful.</returns>
+        public static bool SetLobbyData(string lobbyId, string key, int value)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_SetLobbyDataInt(lobbyId, key, value);
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Sets a float value in the lobby's metadata. Only the host can set lobby data.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to set.</param>
+        /// <param name="value">The float value to set.</param>
+        /// <returns>True if the operation was successful.</returns>
+        public static bool SetLobbyData(string lobbyId, string key, float value)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_SetLobbyDataFloat(lobbyId, key, value);
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Deletes a key from the lobby's metadata. Only the host can delete lobby data.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to delete.</param>
+        /// <returns>True if the operation was successful.</returns>
+        public static bool DeleteLobbyData(string lobbyId, string key)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_DeleteLobbyData(lobbyId, key);
 #else
             return false;
 #endif
