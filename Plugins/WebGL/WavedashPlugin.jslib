@@ -104,6 +104,19 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  WavedashJS_GetLaunchParams__deps: ['$AllocUTF8'],
+  WavedashJS_GetLaunchParams: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getLaunchParams === 'function') {
+      var params = window.WavedashJS.getLaunchParams();
+      if (params) {
+        return AllocUTF8(JSON.stringify(params));
+      }
+    }
+    return 0;
+  },
+
   WavedashJS_GetLeaderboard__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_GetLeaderboard: function (leaderboardNamePtr, callbackPtr, requestIdPtr) {
     var lbName = UTF8ToString(leaderboardNamePtr);
