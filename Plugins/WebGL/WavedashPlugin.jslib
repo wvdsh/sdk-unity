@@ -201,9 +201,10 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_ListLeaderboardEntries__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_ListLeaderboardEntries: function (leaderboardIdPtr, offset, limit, callbackPtr, requestIdPtr) {
+  WavedashJS_ListLeaderboardEntries: function (leaderboardIdPtr, offset, limit, friendsOnly, callbackPtr, requestIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
     var requestId = UTF8ToString(requestIdPtr);
+    var friendsOnlyBool = friendsOnly !== 0;
 
     var cb = __getWasmFunction(callbackPtr);
 
@@ -212,7 +213,7 @@ mergeInto(LibraryManager.library, {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntries) {
           return Promise.reject('WavedashJS.listLeaderboardEntries not available');
         }
-        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit);
+        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit, friendsOnlyBool);
       },
       cb,
       requestId
@@ -220,10 +221,11 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_ListLeaderboardEntriesAroundUser__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_ListLeaderboardEntriesAroundUser: function (leaderboardIdPtr, countAhead, countBehind, callbackPtr, requestIdPtr) {
+  WavedashJS_ListLeaderboardEntriesAroundUser: function (leaderboardIdPtr, countAhead, countBehind, friendsOnly, callbackPtr, requestIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
     var requestId = UTF8ToString(requestIdPtr);
-    
+    var friendsOnlyBool = friendsOnly !== 0;
+
     var cb = __getWasmFunction(callbackPtr);
 
     WVD_Helpers.run(
@@ -231,7 +233,7 @@ mergeInto(LibraryManager.library, {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntriesAroundUser) {
           return Promise.reject('WavedashJS.listLeaderboardEntriesAroundUser not available');
         }
-        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind);
+        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind, friendsOnlyBool);
       },
       cb,
       requestId
