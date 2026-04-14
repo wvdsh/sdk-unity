@@ -962,7 +962,7 @@ namespace Wavedash
             Task.FromResult<Dictionary<string, object>>(null);
 #endif
 
-        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntries(string leaderboardId, int offset, int limit, bool friendsOnly) =>
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntries(string leaderboardId, int offset, int limit, bool friendsOnly = false) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListLeaderboardEntries(leaderboardId, offset, limit, friendsOnly, fnPtr, requestId));
@@ -970,7 +970,7 @@ namespace Wavedash
             Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
 
-        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntriesAroundUser(string leaderboardId, int countAhead, int countBehind, bool friendsOnly) =>
+        public static Task<List<Dictionary<string, object>>> ListLeaderboardEntriesAroundUser(string leaderboardId, int countAhead, int countBehind, bool friendsOnly = false) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListLeaderboardEntriesAroundUser(leaderboardId, countAhead, countBehind, friendsOnly, fnPtr, requestId));
