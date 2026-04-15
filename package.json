@@ -27,6 +27,11 @@
   "hideInEditor": false,
   "samples": [
     {
+      "displayName": "Netcode for GameObjects Transport",
+      "description": "Transport layer for Unity Netcode for GameObjects (NGO) that uses Wavedash WebRTC networking. Requires the com.unity.netcode.gameobjects package.",
+      "path": "Integrations~/NetcodeForGameObjects"
+    },
+    {
       "displayName": "Mirror Transport",
       "description": "Transport layer for Mirror Networking that uses Wavedash WebRTC networking. Requires the Mirror package.",
       "path": "Integrations~/Mirror"
