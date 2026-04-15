@@ -7,6 +7,9 @@ using UnityEngine;
 /// Transport layer for Unity Netcode for GameObjects that uses Wavedash SDK for P2P communication.
 /// Assumes all members of a Wavedash Lobby have open WebRTC connections to each other.
 /// Lobby host is the NGO Network host; other members are clients.
+///
+/// Order-independent: StartHost/StartClient can be called before or after OnLobbyJoined —
+/// the transport connects lazily once lobby info and P2P connections are both available.
 /// </summary>
 public class WavedashTransport : NetworkTransport
 {
@@ -21,6 +24,7 @@ public class WavedashTransport : NetworkTransport
     ulong nextConnectionId = 1;
 
     bool _serverActive;
+    bool _clientStarted;
     bool _clientConnected;
 
     struct PendingEvent
@@ -39,7 +43,7 @@ public class WavedashTransport : NetworkTransport
 
     public event Action<string> OnHostMigration;
 
-    void OnEnable()
+    void Awake()
     {
         Wavedash.SDK.OnLobbyJoined += OnLobbyJoined;
         Wavedash.SDK.OnLobbyKicked += OnLobbyKicked;
@@ -49,7 +53,7 @@ public class WavedashTransport : NetworkTransport
         Wavedash.SDK.OnP2PConnectionFailed += OnP2PConnectionFailed;
     }
 
-    void OnDisable()
+    void OnDestroy()
     {
         Wavedash.SDK.OnLobbyJoined -= OnLobbyJoined;
         Wavedash.SDK.OnLobbyKicked -= OnLobbyKicked;
@@ -71,31 +75,7 @@ public class WavedashTransport : NetworkTransport
     {
         currentLobbyId = null;
         hostUserId = null;
-
-        if (_clientConnected)
-        {
-            _clientConnected = false;
-            _eventQueue.Enqueue(new PendingEvent
-            {
-                Type = NetworkEvent.Disconnect,
-                ClientId = ServerClientId
-            });
-        }
-
-        if (_serverActive)
-        {
-            foreach (var kvp in connectionToUserId)
-            {
-                _eventQueue.Enqueue(new PendingEvent
-                {
-                    Type = NetworkEvent.Disconnect,
-                    ClientId = kvp.Key
-                });
-            }
-            _serverActive = false;
-            connectionToUserId.Clear();
-            userIdToConnection.Clear();
-        }
+        DisconnectAllPeers();
     }
 
     void OnLobbyUsersUpdated(Dictionary<string, object> data)
@@ -129,21 +109,31 @@ public class WavedashTransport : NetworkTransport
             });
         }
 
-        if (!_clientConnected && userId == hostUserId)
-        {
-            _clientConnected = true;
-            Debug.Log("[WavedashTransport] Client: connected to host");
-            _eventQueue.Enqueue(new PendingEvent
-            {
-                Type = NetworkEvent.Connect,
-                ClientId = ServerClientId
-            });
-        }
+        TryDeferredConnect();
     }
 
     void OnP2PPeerDisconnected(Dictionary<string, object> data)
     {
         string userId = data["userId"].ToString();
+        DisconnectPeer(userId);
+    }
+
+    void OnP2PConnectionFailed(Dictionary<string, object> data)
+    {
+        string userId = data.ContainsKey("userId") ? data["userId"].ToString() : null;
+        string reason = data.ContainsKey("reason") ? data["reason"].ToString() : "unknown";
+        Debug.LogWarning($"[WavedashTransport] P2P connection failed for {userId}: {reason}");
+        if (userId != null)
+            DisconnectPeer(userId);
+    }
+
+    /// <summary>
+    /// Idempotent: removes a peer and enqueues NGO disconnect events.
+    /// Safe to call multiple times for the same userId (e.g. from both
+    /// OnP2PConnectionFailed and OnP2PPeerDisconnected).
+    /// </summary>
+    void DisconnectPeer(string userId)
+    {
         connectedPeers.Remove(userId);
 
         if (_serverActive && userIdToConnection.TryGetValue(userId, out ulong connId))
@@ -168,13 +158,57 @@ public class WavedashTransport : NetworkTransport
         }
     }
 
-    void OnP2PConnectionFailed(Dictionary<string, object> data)
+    /// <summary>
+    /// Disconnects all peers and resets server/client state.
+    /// Used when kicked from lobby.
+    /// </summary>
+    void DisconnectAllPeers()
     {
-        string userId = data.ContainsKey("userId") ? data["userId"].ToString() : "unknown";
-        string reason = data.ContainsKey("reason") ? data["reason"].ToString() : "unknown";
-        Debug.LogError($"[WavedashTransport] P2P connection failed for {userId}: {reason}");
+        if (_clientConnected)
+        {
+            _clientConnected = false;
+            _eventQueue.Enqueue(new PendingEvent
+            {
+                Type = NetworkEvent.Disconnect,
+                ClientId = ServerClientId
+            });
+        }
 
-        _eventQueue.Enqueue(new PendingEvent { Type = NetworkEvent.TransportFailure });
+        if (_serverActive)
+        {
+            foreach (var kvp in connectionToUserId)
+            {
+                _eventQueue.Enqueue(new PendingEvent
+                {
+                    Type = NetworkEvent.Disconnect,
+                    ClientId = kvp.Key
+                });
+            }
+            _serverActive = false;
+            connectionToUserId.Clear();
+            userIdToConnection.Clear();
+        }
+
+        connectedPeers.Clear();
+    }
+
+    /// <summary>
+    /// Called when lobby info or P2P state changes. If the client was started
+    /// but not yet connected (because lobby info or P2P wasn't ready), try now.
+    /// </summary>
+    void TryDeferredConnect()
+    {
+        if (_clientStarted && !_clientConnected &&
+            hostUserId != null && connectedPeers.Contains(hostUserId))
+        {
+            _clientConnected = true;
+            Debug.Log("[WavedashTransport] Client: connected to host (deferred)");
+            _eventQueue.Enqueue(new PendingEvent
+            {
+                Type = NetworkEvent.Connect,
+                ClientId = ServerClientId
+            });
+        }
     }
 
     // --- Transport Implementation ---
@@ -183,21 +217,20 @@ public class WavedashTransport : NetworkTransport
 
     public override bool StartClient()
     {
-        if (currentLobbyId == null)
-        {
-            Debug.LogError("[WavedashTransport] Cannot connect: not in a lobby. Join a Wavedash lobby first.");
-            return false;
-        }
+        _clientStarted = true;
 
-        if (connectedPeers.Contains(hostUserId))
+        // If lobby info and P2P are already available, connect immediately
+        if (hostUserId != null && connectedPeers.Contains(hostUserId))
         {
             _clientConnected = true;
+            Debug.Log("[WavedashTransport] Client: connected to host");
             _eventQueue.Enqueue(new PendingEvent
             {
                 Type = NetworkEvent.Connect,
                 ClientId = ServerClientId
             });
         }
+        // Otherwise, OnP2PConnectionEstablished will call TryDeferredConnect
 
         return true;
     }
@@ -315,6 +348,7 @@ public class WavedashTransport : NetworkTransport
     public override void DisconnectLocalClient()
     {
         _clientConnected = false;
+        _clientStarted = false;
     }
 
     public override ulong GetCurrentRtt(ulong clientId) => 0;
@@ -322,6 +356,7 @@ public class WavedashTransport : NetworkTransport
     public override void Shutdown()
     {
         _clientConnected = false;
+        _clientStarted = false;
         _serverActive = false;
         connectionToUserId.Clear();
         userIdToConnection.Clear();
