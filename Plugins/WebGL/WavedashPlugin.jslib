@@ -202,7 +202,6 @@ mergeInto(LibraryManager.library, {
   WavedashJS_ListLeaderboardEntries: function (leaderboardIdPtr, offset, limit, friendsOnly, callbackPtr, requestIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
     var requestId = UTF8ToString(requestIdPtr);
-    var friendsOnlyBool = friendsOnly !== 0;
 
     var cb = __getWasmFunction(callbackPtr);
 
@@ -211,7 +210,7 @@ mergeInto(LibraryManager.library, {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntries) {
           return Promise.reject('WavedashJS.listLeaderboardEntries not available');
         }
-        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit, friendsOnlyBool);
+        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit, !!friendsOnly);
       },
       cb,
       requestId
@@ -222,7 +221,6 @@ mergeInto(LibraryManager.library, {
   WavedashJS_ListLeaderboardEntriesAroundUser: function (leaderboardIdPtr, countAhead, countBehind, friendsOnly, callbackPtr, requestIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
     var requestId = UTF8ToString(requestIdPtr);
-    var friendsOnlyBool = friendsOnly !== 0;
 
     var cb = __getWasmFunction(callbackPtr);
 
@@ -231,7 +229,7 @@ mergeInto(LibraryManager.library, {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntriesAroundUser) {
           return Promise.reject('WavedashJS.listLeaderboardEntriesAroundUser not available');
         }
-        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind, friendsOnlyBool);
+        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind, !!friendsOnly);
       },
       cb,
       requestId
