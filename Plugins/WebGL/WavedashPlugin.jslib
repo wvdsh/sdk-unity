@@ -702,6 +702,20 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  WavedashJS_GetUsernameForUser__deps: ['$AllocUTF8'],
+  WavedashJS_GetUsernameForUser: function (userIdPtr) {
+    var userId = UTF8ToString(userIdPtr);
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.getUsername === 'function') {
+      var username = window.WavedashJS.getUsername(userId);
+      if (username) {
+        return AllocUTF8(username);
+      }
+    }
+    return 0;
+  },
+
   WavedashJS_GetUserAvatarUrl__deps: ['$AllocUTF8'],
   WavedashJS_GetUserAvatarUrl: function (userIdPtr, size) {
     var userId = UTF8ToString(userIdPtr);
