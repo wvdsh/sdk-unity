@@ -139,7 +139,7 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_GetLobbyInviteLink(
-            int copyToClipboard,
+            bool copyToClipboard,
             IntPtr callbackPtr,
             string requestId);
 
@@ -685,7 +685,7 @@ namespace Wavedash
         public static Task<string> GetLobbyInviteLink(bool copyToClipboard = false) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<string>((fnPtr, requestId) =>
-                WavedashJS_GetLobbyInviteLink(copyToClipboard ? 1 : 0, fnPtr, requestId));
+                WavedashJS_GetLobbyInviteLink(copyToClipboard, fnPtr, requestId));
 #else
             Task.FromResult<string>(null);
 #endif

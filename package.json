@@ -1,6 +1,6 @@
 {
   "name": "com.wavedash.sdk",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "displayName": "Wavedash SDK",
   "description": "Unity SDK for integrating Wavedash services in Web builds. Provides seamless JavaScript interop for Unity games to utilize Wavedash Online Services.",
   "unity": "6000.0",
@@ -26,6 +26,11 @@
   "type": "library",
   "hideInEditor": false,
   "samples": [
+    {
+      "displayName": "Netcode for GameObjects Transport",
+      "description": "Transport layer for Unity Netcode for GameObjects (NGO) that uses Wavedash WebRTC networking. Requires the com.unity.netcode.gameobjects package.",
+      "path": "Integrations~/NetcodeForGameObjects"
+    },
     {
       "displayName": "Mirror Transport",
       "description": "Transport layer for Mirror Networking that uses Wavedash WebRTC networking. Requires the Mirror package.",

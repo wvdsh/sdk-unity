@@ -163,17 +163,15 @@ mergeInto(LibraryManager.library, {
   
     var cb = __getWasmFunction(callbackPtr);
   
-    var keepBestBool = keepBest !== 0;
-
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadLeaderboardScore) {
           return Promise.reject('WavedashJS.uploadLeaderboardScore not available');
         }
         if (ugcId && ugcId.length > 0) {
-          return window.WavedashJS.uploadLeaderboardScore(lbId, score, keepBestBool, ugcId);
+          return window.WavedashJS.uploadLeaderboardScore(lbId, score, !!keepBest, ugcId);
         } else {
-          return window.WavedashJS.uploadLeaderboardScore(lbId, score, keepBestBool);
+          return window.WavedashJS.uploadLeaderboardScore(lbId, score, !!keepBest);
         }
       },
       cb,
@@ -204,7 +202,6 @@ mergeInto(LibraryManager.library, {
   WavedashJS_ListLeaderboardEntries: function (leaderboardIdPtr, offset, limit, friendsOnly, callbackPtr, requestIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
     var requestId = UTF8ToString(requestIdPtr);
-    var friendsOnlyBool = friendsOnly !== 0;
 
     var cb = __getWasmFunction(callbackPtr);
 
@@ -213,7 +210,7 @@ mergeInto(LibraryManager.library, {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntries) {
           return Promise.reject('WavedashJS.listLeaderboardEntries not available');
         }
-        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit, friendsOnlyBool);
+        return window.WavedashJS.listLeaderboardEntries(lbId, offset, limit, !!friendsOnly);
       },
       cb,
       requestId
@@ -224,7 +221,6 @@ mergeInto(LibraryManager.library, {
   WavedashJS_ListLeaderboardEntriesAroundUser: function (leaderboardIdPtr, countAhead, countBehind, friendsOnly, callbackPtr, requestIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
     var requestId = UTF8ToString(requestIdPtr);
-    var friendsOnlyBool = friendsOnly !== 0;
 
     var cb = __getWasmFunction(callbackPtr);
 
@@ -233,7 +229,7 @@ mergeInto(LibraryManager.library, {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.listLeaderboardEntriesAroundUser) {
           return Promise.reject('WavedashJS.listLeaderboardEntriesAroundUser not available');
         }
-        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind, friendsOnlyBool);
+        return window.WavedashJS.listLeaderboardEntriesAroundUser(lbId, countAhead, countBehind, !!friendsOnly);
       },
       cb,
       requestId
@@ -439,14 +435,12 @@ mergeInto(LibraryManager.library, {
   WavedashJS_ListAvailableLobbies: function (friendsOnly, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
-    var friendsOnlyBool = friendsOnly !== 0;
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.listAvailableLobbies) {
           return Promise.reject("WavedashJS.listAvailableLobbies not available");
         }
-        return window.WavedashJS.listAvailableLobbies(friendsOnlyBool);
+        return window.WavedashJS.listAvailableLobbies(!!friendsOnly);
       },
       cb,
       requestId
@@ -457,14 +451,12 @@ mergeInto(LibraryManager.library, {
   WavedashJS_GetLobbyInviteLink: function (copyToClipboard, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
     var cb = __getWasmFunction(callbackPtr);
-    var copyToClipboardBool = copyToClipboard !== 0;
-
     WVD_Helpers.run(
       function () {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.getLobbyInviteLink) {
           return Promise.reject("WavedashJS.getLobbyInviteLink not available");
         }
-        return window.WavedashJS.getLobbyInviteLink(copyToClipboardBool);
+        return window.WavedashJS.getLobbyInviteLink(!!copyToClipboard);
       },
       cb,
       requestId
@@ -495,8 +487,7 @@ mergeInto(LibraryManager.library, {
       // Zero-copy view: safe because broadcastP2PMessage is synchronous and
       // operates entirely in JS heap (no Emscripten heap allocations).
       var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
-      var isReliable = reliable !== 0;
-      return !!window.WavedashJS.broadcastP2PMessage(appChannel, isReliable, payload);
+      return !!window.WavedashJS.broadcastP2PMessage(appChannel, !!reliable, payload);
     }
     return false;
   },
@@ -507,8 +498,7 @@ mergeInto(LibraryManager.library, {
       // Zero-copy view: safe because sendP2PMessage is synchronous and
       // operates entirely in JS heap (no Emscripten heap allocations).
       var payload = HEAPU8.subarray(payloadPtr, payloadPtr + payloadLength);
-      var isReliable = reliable !== 0;
-      return !!window.WavedashJS.sendP2PMessage(targetUserId, appChannel, isReliable, payload, payloadLength);
+      return !!window.WavedashJS.sendP2PMessage(targetUserId, appChannel, !!reliable, payload, payloadLength);
     }
     return false;
   },
