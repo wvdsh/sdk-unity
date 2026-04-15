@@ -160,6 +160,9 @@ namespace Wavedash
         private static extern string WavedashJS_GetUsername();
 
         [DllImport("__Internal")]
+        private static extern string WavedashJS_GetUsernameForUser(string userId);
+
+        [DllImport("__Internal")]
         private static extern string WavedashJS_GetUserAvatarUrl(string userId, int size);
 
         [DllImport("__Internal")]
@@ -1271,6 +1274,21 @@ namespace Wavedash
 
             _cachedUsername = WavedashJS_GetUsername();
             return _cachedUsername;
+#else
+            return null;
+#endif
+        }
+
+        /// <summary>
+        /// Gets the username for a specific user. The user must have been previously
+        /// seen via ListFriends or shared lobby membership.
+        /// </summary>
+        /// <param name="userId">The user ID to get the username for.</param>
+        /// <returns>The username string, or null if the user has not been seen.</returns>
+        public static string GetUsername(string userId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetUsernameForUser(userId);
 #else
             return null;
 #endif
