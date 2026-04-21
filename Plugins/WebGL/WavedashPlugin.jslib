@@ -730,6 +730,23 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  WavedashJS_GetUserJwt__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetUserJwt: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getUserJwt) {
+          return Promise.reject('WavedashJS.getUserJwt not available');
+        }
+        return window.WavedashJS.getUserJwt();
+      },
+      cb,
+      requestId
+    );
+  },
+
   WavedashJS_ListFriends__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_ListFriends: function (callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);

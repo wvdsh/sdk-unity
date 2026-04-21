@@ -166,6 +166,9 @@ namespace Wavedash
         private static extern string WavedashJS_GetUserAvatarUrl(string userId, int size);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_GetUserJwt(IntPtr callbackPtr, string requestId);
+
+        [DllImport("__Internal")]
         private static extern void WavedashJS_ListFriends(IntPtr callbackPtr, string requestId);
 
         [DllImport("__Internal")]
@@ -1342,6 +1345,19 @@ namespace Wavedash
             return null;
 #endif
         }
+
+        /// <summary>
+        /// Gets the current user's gameplay JWT, fetching it if not already cached.
+        /// Use this to authenticate requests to your game's own backend, if you have one.
+        /// </summary>
+        /// <returns>The user's JWT signed by the Wavedash backend, or null on failure.</returns>
+        public static Task<string> GetUserJwt() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_GetUserJwt(fnPtr, requestId));
+#else
+            Task.FromResult<string>(null);
+#endif
 
         // ===========
         // Friends
