@@ -36,6 +36,19 @@ namespace Wavedash
         public static event Action<Dictionary<string, object>> OnP2PConnectionEstablished;
         public static event Action<Dictionary<string, object>> OnP2PConnectionFailed;
         public static event Action<Dictionary<string, object>> OnP2PPeerDisconnected;
+        public static event Action<Dictionary<string, object>> OnP2PPeerReconnecting;
+        public static event Action<Dictionary<string, object>> OnP2PPeerReconnected;
+        /// <summary>
+        /// Fired when the SDK drops a P2P packet on send or receive. Payload fields:
+        /// <c>channel</c> (int, -1 for malformed wire data),
+        /// <c>direction</c> (string — see <see cref="WavedashConstants.P2PPacketDirection"/>),
+        /// <c>reason</c> (string — see <see cref="WavedashConstants.P2PPacketDropReason"/>),
+        /// <c>droppedCount</c> (int, drops coalesced into this event),
+        /// <c>droppedTotal</c> (int, cumulative drops for this tuple since init).
+        /// Events are rate-limited per (channel, direction, reason) tuple with a
+        /// short aggregation window, so bursty drops don't flood the game.
+        /// </summary>
+        public static event Action<Dictionary<string, object>> OnP2PPacketDropped;
         // Backend connection events
         public static event Action<Dictionary<string, object>> OnBackendConnected;
         public static event Action<Dictionary<string, object>> OnBackendDisconnected;
@@ -1516,6 +1529,24 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("P2PPeerDisconnected Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnP2PPeerDisconnected);
+            }
+
+            public void P2PPeerReconnecting(string dataJson)
+            {
+                if (_debug) Debug.Log("P2PPeerReconnecting Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnP2PPeerReconnecting);
+            }
+
+            public void P2PPeerReconnected(string dataJson)
+            {
+                if (_debug) Debug.Log("P2PPeerReconnected Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnP2PPeerReconnected);
+            }
+
+            public void P2PPacketDropped(string dataJson)
+            {
+                if (_debug) Debug.Log("P2PPacketDropped Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnP2PPacketDropped);
             }
 
             public void BackendConnected(string dataJson)
