@@ -56,6 +56,11 @@ namespace Wavedash
         // Stats events
         public static event Action<Dictionary<string, object>> OnCurrentStatsReceived;
         public static event Action<Dictionary<string, object>> OnStatsStored;
+        // Fullscreen events
+        /// <summary>
+        /// Fired when the host page enters or exits fullscreen. Payload: { isFullscreen: bool }.
+        /// </summary>
+        public static event Action<Dictionary<string, object>> OnFullscreenChanged;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -165,6 +170,20 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_ToggleOverlay();
+
+        [DllImport("__Internal")]
+        private static extern bool WavedashJS_IsFullscreen();
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_RequestFullscreen(
+            bool fullscreen,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ToggleFullscreen(
+            IntPtr callbackPtr,
+            string requestId);
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUserId();
@@ -1254,6 +1273,50 @@ namespace Wavedash
         }
 
         // ===========
+        // Fullscreen
+        // ===========
+
+        /// <summary>
+        /// Whether the game is currently presented in fullscreen.
+        /// Mirrored from the Wavedash host page, which owns the real fullscreen target.
+        /// </summary>
+        public static bool IsFullscreen()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_IsFullscreen();
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Ask the host page to enter (true) or exit (false) fullscreen.
+        /// Entering must happen inside a user-gesture handler (click / keydown)
+        /// for the browser to permit it.
+        /// </summary>
+        /// <returns>True if the host reports the operation succeeded, false otherwise.</returns>
+        public static Task<bool> RequestFullscreen(bool fullscreen) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_RequestFullscreen(fullscreen, fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        /// <summary>
+        /// Toggle fullscreen. Like <see cref="RequestFullscreen"/>, this must run
+        /// inside a user-gesture handler when entering fullscreen.
+        /// </summary>
+        /// <returns>True if the host reports the operation succeeded, false otherwise.</returns>
+        public static Task<bool> ToggleFullscreen() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_ToggleFullscreen(fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        // ===========
         // User Info
         // ===========
 
@@ -1315,7 +1378,7 @@ namespace Wavedash
         /// Users are cached when seen via friends list or lobby membership.
         /// </summary>
         /// <param name="userId">The user ID to get the avatar URL for.</param>
-        /// <param name="size">Avatar size constant from WavedashConstants.AvatarSize (SMALL=0, MEDIUM=1, LARGE=2).</param>
+        /// <param name="size">Width and heigh in pixels, defaults to WavedashConstants.AvatarSize.MEDIUM (128x128)</param>
         /// <returns>CDN URL with size transformation, or null if user not cached or has no avatar.</returns>
         public static string GetUserAvatarUrl(string userId, int size = WavedashConstants.AvatarSize.MEDIUM)
         {
@@ -1331,7 +1394,7 @@ namespace Wavedash
         /// Users must be cached (seen via friends list or lobby membership) for this to work.
         /// </summary>
         /// <param name="userId">The user ID to get the avatar for.</param>
-        /// <param name="size">Avatar size constant from WavedashConstants.AvatarSize (SMALL=0, MEDIUM=1, LARGE=2).</param>
+        /// <param name="size">Width and height in pixels, defaults to WavedashConstants.AvatarSize.MEDIUM (128x128)</param>
         /// <returns>Texture2D on success, null if user not cached, has no avatar, or fetch fails.</returns>
         public static async Task<Texture2D> GetUserAvatar(string userId, int size = WavedashConstants.AvatarSize.MEDIUM)
         {
@@ -1577,6 +1640,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("StatsStored Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnStatsStored);
+            }
+
+            public void FullscreenChanged(string dataJson)
+            {
+                if (_debug) Debug.Log("FullscreenChanged Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnFullscreenChanged);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)

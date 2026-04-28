@@ -676,6 +676,55 @@ mergeInto(LibraryManager.library, {
     }
   },
 
+  WavedashJS_IsFullscreen: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.isFullscreen === 'function') {
+      return !!window.WavedashJS.isFullscreen();
+    }
+    return false;
+  },
+
+  WavedashJS_RequestFullscreen__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_RequestFullscreen: function (fullscreen, callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.requestFullscreen) {
+          return Promise.reject('WavedashJS.requestFullscreen not available');
+        }
+        // JS SDK returns Promise<bool>; wrap into the {success, data} envelope
+        // the C# response handler expects.
+        return window.WavedashJS.requestFullscreen(!!fullscreen).then(function (s) {
+          return { success: true, data: !!s };
+        });
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_ToggleFullscreen__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ToggleFullscreen: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.toggleFullscreen) {
+          return Promise.reject('WavedashJS.toggleFullscreen not available');
+        }
+        return window.WavedashJS.toggleFullscreen().then(function (s) {
+          return { success: true, data: !!s };
+        });
+      },
+      cb,
+      requestId
+    );
+  },
+
   WavedashJS_GetUserId__deps: ['$AllocUTF8'],
   WavedashJS_GetUserId: function () {
     if (typeof window !== 'undefined' &&
