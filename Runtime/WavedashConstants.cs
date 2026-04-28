@@ -86,10 +86,10 @@ public static class WavedashConstants
   public static class AvatarSize
   {
     /// <summary>64x64 - Lists, chat bubbles</summary>
-    public const int SMALL = 0;
+    public const int SMALL = 64;
     /// <summary>128x128 - Profile cards</summary>
-    public const int MEDIUM = 1;
+    public const int MEDIUM = 128;
     /// <summary>256x256 - Large displays</summary>
-    public const int LARGE = 2;
+    public const int LARGE = 256;
   }
 }
