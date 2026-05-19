@@ -293,6 +293,44 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_RemoteFileExists__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_RemoteFileExists: function (filePathPtr, callbackPtr, requestIdPtr) {
+    var filePath = UTF8ToString(filePathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.remoteFileExists) {
+          return Promise.reject('WavedashJS.remoteFileExists not available');
+        }
+        return window.WavedashJS.remoteFileExists(filePath);
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_DeleteRemoteFile__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_DeleteRemoteFile: function (filePathPtr, callbackPtr, requestIdPtr) {
+    var filePath = UTF8ToString(filePathPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.deleteRemoteFile) {
+          return Promise.reject('WavedashJS.deleteRemoteFile not available');
+        }
+        return window.WavedashJS.deleteRemoteFile(filePath);
+      },
+      cb,
+      requestId
+    );
+  },
+
   WavedashJS_DownloadRemoteDirectory__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_DownloadRemoteDirectory: function (pathPtr, callbackPtr, requestIdPtr) {
     var path = UTF8ToString(pathPtr);
@@ -369,6 +407,25 @@ mergeInto(LibraryManager.library, {
           return Promise.reject("WavedashJS.downloadUGCItem not available");
         }
         return window.WavedashJS.downloadUGCItem(ugcId, filePath);
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_DeleteUGCItem__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_DeleteUGCItem: function (ugcIdPtr, callbackPtr, requestIdPtr) {
+    var ugcId = UTF8ToString(ugcIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.deleteUGCItem) {
+          return Promise.reject("WavedashJS.deleteUGCItem not available");
+        }
+        return window.WavedashJS.deleteUGCItem(ugcId);
       },
       cb,
       requestId
