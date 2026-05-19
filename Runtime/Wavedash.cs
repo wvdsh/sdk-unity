@@ -54,7 +54,6 @@ namespace Wavedash
         public static event Action<Dictionary<string, object>> OnBackendDisconnected;
         public static event Action<Dictionary<string, object>> OnBackendReconnecting;
         // Stats events
-        public static event Action<Dictionary<string, object>> OnCurrentStatsReceived;
         public static event Action<Dictionary<string, object>> OnStatsStored;
         // Fullscreen events
         /// <summary>
@@ -329,6 +328,18 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_RemoteFileExists(
+            string path,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_DeleteRemoteFile(
+            string path,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
         private static extern void WavedashJS_DownloadRemoteDirectory(
             string path,
             IntPtr callbackPtr,
@@ -355,6 +366,12 @@ namespace Wavedash
         private static extern void WavedashJS_DownloadUGCItem(
             string ugcId,
             string filePath,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_DeleteUGCItem(
+            string ugcId,
             IntPtr callbackPtr,
             string requestId);
 
@@ -1057,6 +1074,36 @@ namespace Wavedash
 #endif
         }
 
+        /// <summary>
+        /// Checks whether a file exists in the user's remote file storage.
+        /// </summary>
+        /// <param name="path">The remote file path to check.</param>
+        /// <returns>True if the file exists remotely, false otherwise.</returns>
+        public static Task<bool> RemoteFileExists(string path)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_RemoteFileExists(path, fnPtr, requestId));
+#else
+            return Task.FromResult(false);
+#endif
+        }
+
+        /// <summary>
+        /// Deletes a file from the user's remote file storage.
+        /// </summary>
+        /// <param name="path">The remote file path to delete.</param>
+        /// <returns>The path of the remote file that was deleted, or null on failure.</returns>
+        public static Task<string> DeleteRemoteFile(string path)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_DeleteRemoteFile(path, fnPtr, requestId));
+#else
+            return Task.FromResult<string>(null);
+#endif
+        }
+
         public static Task<string> DownloadRemoteDirectory(string path)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -1117,6 +1164,21 @@ namespace Wavedash
         }
 
         /// <summary>
+        /// Deletes a UGC item owned by the current user.
+        /// </summary>
+        /// <param name="ugcId">The ID of the UGC item to delete.</param>
+        /// <returns>The ID of the UGC item that was deleted, or null on failure.</returns>
+        public static Task<string> DeleteUGCItem(string ugcId)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return InvokeJs<string>((fnPtr, requestId) =>
+                WavedashJS_DeleteUGCItem(ugcId, fnPtr, requestId));
+#else
+            return Task.FromResult<string>(null);
+#endif
+        }
+
+        /// <summary>
         /// Updates an existing UGC item.
         /// </summary>
         /// <param name="ugcId">The ID of the UGC item to update.</param>
@@ -1146,7 +1208,8 @@ namespace Wavedash
 
         /// <summary>
         /// Requests the current stats and achievements from the server.
-        /// Listen for <see cref="OnCurrentStatsReceived"/> to receive the data.
+        /// Awaited result is a success flag; once it resolves, read individual values
+        /// via <see cref="GetStatInt"/>, <see cref="GetStatFloat"/>, and <see cref="GetAchievement"/>.
         /// </summary>
         public static Task<bool> RequestStats() =>
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -1628,12 +1691,6 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("BackendReconnecting Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnBackendReconnecting);
-            }
-
-            public void CurrentStatsReceived(string dataJson)
-            {
-                if (_debug) Debug.Log("CurrentStatsReceived Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnCurrentStatsReceived);
             }
 
             public void StatsStored(string dataJson)
