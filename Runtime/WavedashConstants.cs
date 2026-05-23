@@ -12,7 +12,6 @@ public static class WavedashConstants
   public static class UGCVisibility
   {
     public const int PUBLIC = 0;
-    public const int FRIENDS_ONLY = 1;
     public const int PRIVATE = 2;
   }
 
