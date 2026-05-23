@@ -375,6 +375,16 @@ namespace Wavedash
             IntPtr callbackPtr,
             string requestId);
 
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ListUGCItems(
+            string createdBy,
+            int ugcType,
+            string titleSearch,
+            int numItems,
+            string continueCursor,
+            IntPtr callbackPtr,
+            string requestId);
+
 #endif
         #endregion
 
@@ -1199,6 +1209,27 @@ namespace Wavedash
                 WavedashJS_UpdateUGCItem(ugcId, title, description, visibility ?? -1, filePath, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
+#endif
+        }
+
+        /// <summary>
+        /// Lists UGC items with optional filters and pagination.
+        /// On the first page pass any of createdBy/ugcType/titleSearch/numItems.
+        /// On subsequent pages pass ONLY continueCursor.
+        /// </summary>
+        /// <returns>Paginated response: { page, isDone, continueCursor }.</returns>
+        public static Task<Dictionary<string, object>> ListUGCItems(
+            string createdBy = null,
+            int? ugcType = null,
+            string titleSearch = null,
+            int? numItems = null,
+            string continueCursor = null)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_ListUGCItems(createdBy, ugcType ?? -1, titleSearch, numItems ?? 0, continueCursor, fnPtr, requestId));
+#else
+            return Task.FromResult<Dictionary<string, object>>(null);
 #endif
         }
 

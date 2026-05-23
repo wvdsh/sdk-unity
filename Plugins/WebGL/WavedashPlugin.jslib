@@ -963,12 +963,13 @@ mergeInto(LibraryManager.library, {
     var ugcId = UTF8ToString(ugcIdPtr);
     var requestId = UTF8ToString(requestIdPtr);
 
-    // Null pointer (0) from C# null → undefined; otherwise use the actual string value
-    var title = titlePtr === 0 ? undefined : UTF8ToString(titlePtr);
-    var description = descriptionPtr === 0 ? undefined : UTF8ToString(descriptionPtr);
-    var filePath = filePathPtr === 0 ? undefined : UTF8ToString(filePathPtr);
-    // Use -1 as sentinel for "undefined" visibility
-    var vis = visibility < 0 ? undefined : visibility;
+    // Null pointer (0) from C# null → field omitted; otherwise include the value.
+    // -1 is the sentinel for "leave visibility unchanged".
+    var updates = {};
+    if (titlePtr !== 0) updates.title = UTF8ToString(titlePtr);
+    if (descriptionPtr !== 0) updates.description = UTF8ToString(descriptionPtr);
+    if (visibility >= 0) updates.visibility = visibility;
+    if (filePathPtr !== 0) updates.filePath = UTF8ToString(filePathPtr);
 
     var cb = __getWasmFunction(callbackPtr);
 
@@ -977,7 +978,32 @@ mergeInto(LibraryManager.library, {
         if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.updateUGCItem) {
           return Promise.reject("WavedashJS.updateUGCItem not available");
         }
-        return window.WavedashJS.updateUGCItem(ugcId, title, description, vis, filePath);
+        return window.WavedashJS.updateUGCItem(ugcId, updates);
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_ListUGCItems__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ListUGCItems: function (createdByPtr, ugcType, titleSearchPtr, numItems, continueCursorPtr, callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var args = {};
+    if (createdByPtr !== 0) args.createdBy = UTF8ToString(createdByPtr);
+    if (ugcType >= 0) args.ugcType = ugcType;
+    if (titleSearchPtr !== 0) args.titleSearch = UTF8ToString(titleSearchPtr);
+    if (numItems > 0) args.numItems = numItems;
+    if (continueCursorPtr !== 0) args.continueCursor = UTF8ToString(continueCursorPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.listUGCItems) {
+          return Promise.reject("WavedashJS.listUGCItems not available");
+        }
+        return window.WavedashJS.listUGCItems(args);
       },
       cb,
       requestId
