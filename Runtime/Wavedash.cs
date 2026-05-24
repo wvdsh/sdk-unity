@@ -237,6 +237,12 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_UpdateUserPresence(
+            string dataJson,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
         private static extern bool WavedashJS_BroadcastP2PMessage(
             int appChannel,
             bool reliable,
@@ -1209,6 +1215,26 @@ namespace Wavedash
                 WavedashJS_UpdateUGCItem(ugcId, title, description, visibility ?? -1, filePath, fnPtr, requestId));
 #else
             return Task.FromResult<string>(null);
+#endif
+        }
+
+        /// <summary>
+        /// Updates rich user presence so friends can see what the player is doing in game.
+        /// Supported keys:
+        ///   "status"  — one-line activity shown as the primary line (e.g. "Traveling in a group")
+        ///   "details" — secondary context shown beneath the status (e.g. current zone or mode)
+        /// Values must be string or null. Pass `null` for an individual key to clear that field.
+        /// Pass an empty dictionary to send a heartbeat without changing fields.
+        /// </summary>
+        /// <returns>True if the presence was updated successfully.</returns>
+        public static Task<bool> UpdateUserPresence(Dictionary<string, object> data)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            string dataJson = JsonConvert.SerializeObject(data);
+            return InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_UpdateUserPresence(dataJson, fnPtr, requestId));
+#else
+            return Task.FromResult(false);
 #endif
         }
 

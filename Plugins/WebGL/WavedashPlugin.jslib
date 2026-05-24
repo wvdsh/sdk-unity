@@ -985,6 +985,25 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_UpdateUserPresence__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_UpdateUserPresence: function (dataJsonPtr, callbackPtr, requestIdPtr) {
+    var dataJson = UTF8ToString(dataJsonPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.updateUserPresence) {
+          return Promise.reject("WavedashJS.updateUserPresence not available");
+        }
+        // Pass the JSON string through; the JS SDK parses it.
+        return window.WavedashJS.updateUserPresence(dataJson);
+      },
+      cb,
+      requestId
+    );
+  },
+
   WavedashJS_ListUGCItems__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_ListUGCItems: function (createdByPtr, ugcType, titleSearchPtr, numItems, continueCursorPtr, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
