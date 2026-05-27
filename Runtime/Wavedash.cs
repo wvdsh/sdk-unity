@@ -1223,8 +1223,7 @@ namespace Wavedash
         /// Supported keys:
         ///   "status"  — one-line activity shown as the primary line (e.g. "Traveling in a group")
         ///   "details" — secondary context shown beneath the status (e.g. current zone or mode)
-        /// Values must be string or null. Pass `null` for an individual key to clear that field.
-        /// Pass an empty dictionary to send a heartbeat without changing fields.
+        /// Pass an empty dictionary to clear all presence fields.
         /// </summary>
         /// <returns>True if the presence was updated successfully.</returns>
         public static Task<bool> UpdateUserPresence(Dictionary<string, object> data)
