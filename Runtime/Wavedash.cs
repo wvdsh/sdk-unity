@@ -60,6 +60,11 @@ namespace Wavedash
         /// Fired when the host page enters or exits fullscreen. Payload: { isFullscreen: bool }.
         /// </summary>
         public static event Action<Dictionary<string, object>> OnFullscreenChanged;
+        // Audio events
+        /// <summary>
+        /// Fired when the host page mutes or unmutes the game. Payload: { isMuted: bool }.
+        /// </summary>
+        public static event Action<Dictionary<string, object>> OnMuteChanged;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -1759,6 +1764,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("FullscreenChanged Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnFullscreenChanged);
+            }
+
+            public void MuteChanged(string dataJson)
+            {
+                if (_debug) Debug.Log("MuteChanged Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnMuteChanged);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)
