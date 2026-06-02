@@ -754,8 +754,8 @@ mergeInto(LibraryManager.library, {
         }
         // JS SDK returns Promise<bool>; wrap into the {success, data} envelope
         // the C# response handler expects.
-        return window.WavedashJS.requestFullscreen(!!fullscreen).then(function (s) {
-          return { success: true, data: !!s };
+        return window.WavedashJS.requestFullscreen(!!fullscreen).then(function (success) {
+          return { success: true, data: !!success };
         });
       },
       cb,
@@ -773,8 +773,57 @@ mergeInto(LibraryManager.library, {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.toggleFullscreen) {
           return Promise.reject('WavedashJS.toggleFullscreen not available');
         }
-        return window.WavedashJS.toggleFullscreen().then(function (s) {
-          return { success: true, data: !!s };
+        return window.WavedashJS.toggleFullscreen().then(function (success) {
+          return { success: true, data: !!success };
+        });
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_IsMuted: function () {
+    if (typeof window !== 'undefined' &&
+        window.WavedashJS &&
+        typeof window.WavedashJS.isMuted === 'function') {
+      return !!window.WavedashJS.isMuted();
+    }
+    return false;
+  },
+
+  WavedashJS_RequestMute__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_RequestMute: function (muted, callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.requestMute) {
+          return Promise.reject('WavedashJS.requestMute not available');
+        }
+        // JS SDK returns Promise<bool>; wrap into the {success, data} envelope
+        // the C# response handler expects.
+        return window.WavedashJS.requestMute(!!muted).then(function (success) {
+          return { success: true, data: !!success };
+        });
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_ToggleMute__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_ToggleMute: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.toggleMute) {
+          return Promise.reject('WavedashJS.toggleMute not available');
+        }
+        return window.WavedashJS.toggleMute().then(function (success) {
+          return { success: true, data: !!success };
         });
       },
       cb,
