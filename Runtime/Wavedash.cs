@@ -190,6 +190,20 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
+        private static extern bool WavedashJS_IsMuted();
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_RequestMute(
+            bool muted,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_ToggleMute(
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
         private static extern string WavedashJS_GetUserId();
 
         [DllImport("__Internal")]
@@ -1436,6 +1450,49 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_ToggleFullscreen(fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        /// <summary>
+        /// Whether the game is currently muted.
+        /// Mirrored from the Wavedash host page, which owns the mute control.
+        /// </summary>
+        public static bool IsMuted()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_IsMuted();
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Ask the host to mute (true) or unmute (false).
+        /// </summary>
+        /// <returns>
+        /// True if the change was applied, false if it was rejected — the host
+        /// won't let the game unmute when the player has explicitly muted from the Wavedash UI.
+        /// </returns>
+        public static Task<bool> RequestMute(bool muted) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_RequestMute(muted, fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        /// <summary>
+        /// Toggle mute.
+        /// </summary>
+        /// <returns>
+        /// True if the change was applied, false if it was rejected (e.g. trying
+        /// to unmute over an explicit player mute).
+        /// </returns>
+        public static Task<bool> ToggleMute() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_ToggleMute(fnPtr, requestId));
 #else
             Task.FromResult(false);
 #endif
