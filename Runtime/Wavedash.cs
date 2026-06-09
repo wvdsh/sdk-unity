@@ -410,6 +410,24 @@ namespace Wavedash
             IntPtr callbackPtr,
             string requestId);
 
+        // Paid Content (Experimental)
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_IsEntitled(
+            string contentId,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_GetEntitlements(
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_TriggerPaywall(
+            string contentIdentifier,
+            IntPtr callbackPtr,
+            string requestId);
+
 #endif
         #endregion
 
@@ -1069,6 +1087,54 @@ namespace Wavedash
 #endif
 
         // ===========
+        // Paid Content (Experimental)
+        // ===========
+
+        /// <summary>
+        /// Checks whether the current user is entitled to the given paid content identifier.
+        /// EXPERIMENTAL: early-access API, subject to change.
+        /// </summary>
+        /// <param name="contentId">The content identifier configured in the Wavedash dashboard.</param>
+        /// <returns>True if the user owns the content, false otherwise.</returns>
+        public static Task<bool> IsEntitled(string contentId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_IsEntitled(contentId, fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        /// <summary>
+        /// Returns all paid content identifiers the current user is entitled to.
+        /// EXPERIMENTAL: early-access API, subject to change.
+        /// </summary>
+        /// <returns>The list of owned content identifiers, or null on failure.</returns>
+        public static Task<List<string>> GetEntitlements() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<List<string>>((fnPtr, requestId) =>
+                WavedashJS_GetEntitlements(fnPtr, requestId));
+#else
+            Task.FromResult<List<string>>(null);
+#endif
+
+        /// <summary>
+        /// Prompts the user to purchase the given paid content. The Wavedash parent site
+        /// fetches the offer, displays the purchase modal, and runs the purchase mutation.
+        /// Resolves true if the user is (or becomes) entitled — it short-circuits when the
+        /// user already owns the content — and false if the modal is dismissed.
+        /// EXPERIMENTAL: early-access API, subject to change.
+        /// </summary>
+        /// <param name="contentIdentifier">The content identifier configured in the Wavedash dashboard.</param>
+        /// <returns>True if the user owns the content after the prompt, false otherwise.</returns>
+        public static Task<bool> TriggerPaywall(string contentIdentifier) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<bool>((fnPtr, requestId) =>
+                WavedashJS_TriggerPaywall(contentIdentifier, fnPtr, requestId));
+#else
+            Task.FromResult(false);
+#endif
+
+        // ===========
         // Remote Files
         // ===========
         public static Task<string> UploadRemoteFile(string path)
@@ -1668,6 +1734,7 @@ namespace Wavedash
                     var msg = resp?.Value<string>("message") ?? "Invalid response";
                     SetResultIfMatch<Dictionary<string, object>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
+                    SetResultIfMatch<List<string>>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<string>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<bool>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
                     SetResultIfMatch<object>(tcsObj, null, ex: new Exception($"Request failed: {msg}"));
@@ -1678,6 +1745,7 @@ namespace Wavedash
 
                 if (!SetResultIfMatch<Dictionary<string, object>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<List<Dictionary<string, object>>>(tcsObj, dataToken) &&
+                    !SetResultIfMatch<List<string>>(tcsObj, dataToken) &&
                     !SetResultIfMatch<string>(tcsObj, dataToken) &&
                     !SetResultIfMatch<bool>(tcsObj, dataToken) &&
                     !SetResultIfMatch<object>(tcsObj, dataToken))

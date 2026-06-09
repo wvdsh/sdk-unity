@@ -1077,4 +1077,62 @@ mergeInto(LibraryManager.library, {
       requestId
     );
   },
+
+  // === Paid Content (Experimental) ===
+
+  WavedashJS_IsEntitled__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_IsEntitled: function (contentIdPtr, callbackPtr, requestIdPtr) {
+    var contentId = UTF8ToString(contentIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.isEntitled_EXPERIMENTAL) {
+          return Promise.reject("WavedashJS.isEntitled_EXPERIMENTAL not available");
+        }
+        return window.WavedashJS.isEntitled_EXPERIMENTAL(contentId);
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_GetEntitlements__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetEntitlements: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.getEntitlements_EXPERIMENTAL) {
+          return Promise.reject("WavedashJS.getEntitlements_EXPERIMENTAL not available");
+        }
+        return window.WavedashJS.getEntitlements_EXPERIMENTAL();
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_TriggerPaywall__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_TriggerPaywall: function (contentIdentifierPtr, callbackPtr, requestIdPtr) {
+    var contentIdentifier = UTF8ToString(contentIdentifierPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.triggerPaywall_EXPERIMENTAL) {
+          return Promise.reject("WavedashJS.triggerPaywall_EXPERIMENTAL not available");
+        }
+        return window.WavedashJS.triggerPaywall_EXPERIMENTAL(contentIdentifier);
+      },
+      cb,
+      requestId
+    );
+  },
 });
