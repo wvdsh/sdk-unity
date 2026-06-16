@@ -902,6 +902,59 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_IsEntitled__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_IsEntitled: function (contentIdentifierPtr, callbackPtr, requestIdPtr) {
+    var contentIdentifier = UTF8ToString(contentIdentifierPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.isEntitled) {
+          return Promise.reject('WavedashJS.isEntitled not available');
+        }
+        return window.WavedashJS.isEntitled(contentIdentifier);
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_GetEntitlements__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetEntitlements: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getEntitlements) {
+          return Promise.reject('WavedashJS.getEntitlements not available');
+        }
+        return window.WavedashJS.getEntitlements();
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_TriggerPaywall__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_TriggerPaywall: function (contentIdentifierPtr, callbackPtr, requestIdPtr) {
+    var contentIdentifier = UTF8ToString(contentIdentifierPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.triggerPaywall) {
+          return Promise.reject('WavedashJS.triggerPaywall not available');
+        }
+        return window.WavedashJS.triggerPaywall(contentIdentifier);
+      },
+      cb,
+      requestId
+    );
+  },
+
   WavedashJS_ListFriends__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_ListFriends: function (callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);
