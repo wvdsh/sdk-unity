@@ -504,6 +504,23 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_GetLobby__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetLobby: function (lobbyIdPtr, callbackPtr, requestIdPtr) {
+    var lobbyId = UTF8ToString(lobbyIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === "undefined" || !window.WavedashJS || !window.WavedashJS.getLobby) {
+          return Promise.reject("WavedashJS.getLobby not available");
+        }
+        return window.WavedashJS.getLobby(lobbyId);
+      },
+      cb,
+      requestId
+    );
+  },
+
   WavedashJS_GetLobbyInviteLink__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_GetLobbyInviteLink: function (copyToClipboard, callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);

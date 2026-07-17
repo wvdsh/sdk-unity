@@ -127,6 +127,12 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
+        private static extern void WavedashJS_GetLobby(
+            string lobbyId,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
         private static extern string WavedashJS_GetLobbyHostId(string lobbyId);
 
         [DllImport("__Internal")]
@@ -603,6 +609,19 @@ namespace Wavedash
                 WavedashJS_ListAvailableLobbies(friendsOnly, fnPtr, requestId));
 #else
             Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
+
+        /// <summary>
+        /// Fetches a lobby by ID.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby to fetch.</param>
+        /// <returns>The lobby data, or null on failure.</returns>
+        public static Task<Dictionary<string, object>> GetLobby(string lobbyId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_GetLobby(lobbyId, fnPtr, requestId));
+#else
+            Task.FromResult<Dictionary<string, object>>(null);
 #endif
 
         public static string GetLobbyHostId(string lobbyId)
