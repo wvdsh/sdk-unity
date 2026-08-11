@@ -156,23 +156,26 @@ mergeInto(LibraryManager.library, {
   },
 
   WavedashJS_UploadLeaderboardScore__deps: ['$WVD_Helpers', '$__getWasmFunction'],
-  WavedashJS_UploadLeaderboardScore: function (leaderboardIdPtr, score, keepBest, ugcIdPtr, callbackPtr, requestIdPtr) {
+  WavedashJS_UploadLeaderboardScore: function (leaderboardIdPtr, score, keepBest, ugcIdPtr, metadataJsonPtr, callbackPtr, requestIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
     var ugcId = UTF8ToString(ugcIdPtr);
+    var metadataJson = UTF8ToString(metadataJsonPtr);
     var requestId = UTF8ToString(requestIdPtr);
-  
+
     var cb = __getWasmFunction(callbackPtr);
-  
+
     WVD_Helpers.run(
       function () {
         if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.uploadLeaderboardScore) {
           return Promise.reject('WavedashJS.uploadLeaderboardScore not available');
         }
-        if (ugcId && ugcId.length > 0) {
-          return window.WavedashJS.uploadLeaderboardScore(lbId, score, !!keepBest, ugcId);
-        } else {
-          return window.WavedashJS.uploadLeaderboardScore(lbId, score, !!keepBest);
-        }
+        return window.WavedashJS.uploadLeaderboardScore(
+          lbId,
+          score,
+          !!keepBest,
+          ugcId && ugcId.length > 0 ? ugcId : undefined,
+          metadataJson && metadataJson.length > 0 ? metadataJson : undefined
+        );
       },
       cb,
       requestId

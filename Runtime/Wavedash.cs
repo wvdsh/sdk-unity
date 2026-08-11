@@ -69,7 +69,7 @@ namespace Wavedash
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
         private static bool _debug = false;
-        
+
         // Cached user data to avoid repeated JS calls
         private static Dictionary<string, object> _cachedUser;
         private static string _cachedUserId;
@@ -330,6 +330,7 @@ namespace Wavedash
             int score,
             bool keepBest,
             string ugcId,
+            string metadataJson,
             IntPtr callbackPtr,
             string requestId);
 
@@ -401,7 +402,7 @@ namespace Wavedash
             string filePath,
             IntPtr callbackPtr,
             string requestId);
-        
+
         [DllImport("__Internal")]
         private static extern void WavedashJS_DownloadUGCItem(
             string ugcId,
@@ -515,7 +516,7 @@ namespace Wavedash
             {
                 return _cachedUser;
             }
-            
+
             string userJson = WavedashJS_GetUser();
             if (!string.IsNullOrEmpty(userJson))
             {
@@ -1072,13 +1073,37 @@ namespace Wavedash
             Task.FromResult<List<Dictionary<string, object>>>(null);
 #endif
 
-        public static Task<Dictionary<string, object>> UploadLeaderboardScore(string leaderboardId, int score, bool keepBest, string ugcId = null) =>
+        /// <summary>
+        /// Posts a score to a leaderboard.
+        /// Metadata belongs to the score it was submitted with: a score that gets written replaces it,
+        /// and passing nothing clears it. A score that keepBest rejects leaves the existing entry —
+        /// metadata included — untouched.
+        /// </summary>
+        /// <param name="ugcId">UGC item to attach to the entry (e.g. a replay), or null for none.</param>
+        /// <param name="metadata">
+        /// Small key/value data to attach to the entry — string, int and float values only
+        /// (e.g. new Dictionary\<string, object\>; { { "character", "knight" }, { "deaths", 3 } }).
+        /// Store larger payloads as UGC and attach them via ugcId instead.
+        /// </param>
+        /// <returns>The upserted entry, carrying the persisted metadata back, plus submittedScore
+        /// and submittedRank for the score that was just sent.</returns>
+        public static Task<Dictionary<string, object>> UploadLeaderboardScore(
+            string leaderboardId,
+            int score,
+            bool keepBest,
+            string ugcId = null,
+            Dictionary<string, object> metadata = null)
+        {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
-                WavedashJS_UploadLeaderboardScore(leaderboardId, score, keepBest, ugcId, fnPtr, requestId));
+            string metadataJson = metadata != null && metadata.Count > 0
+                ? JsonConvert.SerializeObject(metadata)
+                : null;
+            return InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_UploadLeaderboardScore(leaderboardId, score, keepBest, ugcId, metadataJson, fnPtr, requestId));
 #else
-            Task.FromResult<Dictionary<string, object>>(null);
+            return Task.FromResult<Dictionary<string, object>>(null);
 #endif
+        }
 
         public static Task<List<Dictionary<string, object>>> ListLeaderboardEntries(string leaderboardId, int offset, int limit, bool friendsOnly = false) =>
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -1189,7 +1214,7 @@ namespace Wavedash
             {
                 UnityEngine.Debug.LogWarning($"ListRemoteDirectory: You might be missing write permissions to '{path}'. Consider prepending the path with Application.persistentDataPath.");
             }
-            
+
             return InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListRemoteDirectory(path, fnPtr, requestId));
 #else
