@@ -65,6 +65,14 @@ namespace Wavedash
         /// Fired when the host page mutes or unmutes the game. Payload: { isMuted: bool }.
         /// </summary>
         public static event Action<Dictionary<string, object>> OnMuteChanged;
+        // Paid content events
+        /// <summary>
+        /// Fired when the player is granted paid content, regardless of source (the game's own
+        /// <see cref="TriggerPaywall"/>, a purchase on the game page, or a gift redemption).
+        /// Entitlements are already refreshed when this fires, so <see cref="IsEntitled"/>
+        /// reflects the new content. Payload: { contentIdentifiers: string[] }.
+        /// </summary>
+        public static event Action<Dictionary<string, object>> OnEntitlementsGranted;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -1930,6 +1938,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("MuteChanged Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnMuteChanged);
+            }
+
+            public void EntitlementsGranted(string dataJson)
+            {
+                if (_debug) Debug.Log("EntitlementsGranted Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnEntitlementsGranted);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)
