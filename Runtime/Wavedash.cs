@@ -83,6 +83,8 @@ namespace Wavedash
         public delegate void JsCallback(string responseJson);
         private static JsCallback _callbackDelegate; // keep alive
 
+        private const long MaxExactInteger = 9007199254740992L;
+
         #region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
@@ -133,18 +135,6 @@ namespace Wavedash
         private static extern bool WavedashJS_HasLobbyData(string lobbyId, string key);
 
         [DllImport("__Internal")]
-        private static extern bool WavedashJS_HasLobbyDataString(string lobbyId, string key);
-
-        [DllImport("__Internal")]
-        private static extern bool WavedashJS_HasLobbyDataInt(string lobbyId, string key);
-
-        [DllImport("__Internal")]
-        private static extern bool WavedashJS_HasLobbyDataFloat(string lobbyId, string key);
-
-        [DllImport("__Internal")]
-        private static extern bool WavedashJS_HasLobbyDataBool(string lobbyId, string key);
-
-        [DllImport("__Internal")]
         private static extern string WavedashJS_GetLobbyDataString(string lobbyId, string key);
 
         [DllImport("__Internal")]
@@ -157,6 +147,9 @@ namespace Wavedash
         private static extern bool WavedashJS_GetLobbyDataBool(string lobbyId, string key);
 
         [DllImport("__Internal")]
+        private static extern double WavedashJS_GetLobbyDataDouble(string lobbyId, string key);
+
+        [DllImport("__Internal")]
         private static extern bool WavedashJS_SetLobbyDataString(string lobbyId, string key, string value);
 
         [DllImport("__Internal")]
@@ -167,6 +160,9 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern bool WavedashJS_SetLobbyDataBool(string lobbyId, string key, bool value);
+
+        [DllImport("__Internal")]
+        private static extern bool WavedashJS_SetLobbyDataDouble(string lobbyId, string key, double value);
 
         [DllImport("__Internal")]
         private static extern bool WavedashJS_DeleteLobbyData(string lobbyId, string key);
@@ -652,72 +648,13 @@ namespace Wavedash
         }
 
         /// <summary>
-        /// Checks whether a key is set in the lobby's metadata and holds a string.
-        /// </summary>
-        /// <param name="lobbyId">The ID of the lobby.</param>
-        /// <param name="key">The metadata key to check.</param>
-        /// <returns>True if <see cref="GetLobbyDataString"/> will return the stored value.</returns>
-        public static bool HasLobbyDataString(string lobbyId, string key)
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_HasLobbyDataString(lobbyId, key);
-#else
-            return false;
-#endif
-        }
-
-        /// <summary>
-        /// Checks whether a key is set in the lobby's metadata and holds a whole number.
-        /// </summary>
-        /// <param name="lobbyId">The ID of the lobby.</param>
-        /// <param name="key">The metadata key to check.</param>
-        /// <returns>True if <see cref="GetLobbyDataInt"/> will return the stored value.
-        /// A fractional value reports false, because the getter would truncate it.</returns>
-        public static bool HasLobbyDataInt(string lobbyId, string key)
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_HasLobbyDataInt(lobbyId, key);
-#else
-            return false;
-#endif
-        }
-
-        /// <summary>
-        /// Checks whether a key is set in the lobby's metadata and holds a number.
-        /// </summary>
-        /// <param name="lobbyId">The ID of the lobby.</param>
-        /// <param name="key">The metadata key to check.</param>
-        /// <returns>True if <see cref="GetLobbyDataFloat"/> will return the stored value.</returns>
-        public static bool HasLobbyDataFloat(string lobbyId, string key)
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_HasLobbyDataFloat(lobbyId, key);
-#else
-            return false;
-#endif
-        }
-
-        /// <summary>
-        /// Checks whether a key is set in the lobby's metadata and holds a boolean.
-        /// </summary>
-        /// <param name="lobbyId">The ID of the lobby.</param>
-        /// <param name="key">The metadata key to check.</param>
-        /// <returns>True if <see cref="GetLobbyDataBool"/> will return the stored value.</returns>
-        public static bool HasLobbyDataBool(string lobbyId, string key)
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_HasLobbyDataBool(lobbyId, key);
-#else
-            return false;
-#endif
-        }
-
-        /// <summary>
         /// Gets a string value from the lobby's metadata.
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
         /// <returns>The value as a string, or null if not found.</returns>
+        // Answers null where every other getter answers its type's zero value.
+        // Kept because callers already null check it.
         public static string GetLobbyDataString(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -732,7 +669,8 @@ namespace Wavedash
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
-        /// <returns>The integer value, or 0 if not found.</returns>
+        /// <returns>The integer value, truncated, or 0 if the key is not set or does not
+        /// convert to a number.</returns>
         public static int GetLobbyDataInt(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -747,7 +685,8 @@ namespace Wavedash
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
-        /// <returns>The float value, or 0.0f if not found.</returns>
+        /// <returns>The float value, or 0.0f if the key is not set, or NaN if it does not
+        /// convert to a number.</returns>
         public static float GetLobbyDataFloat(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -758,11 +697,28 @@ namespace Wavedash
         }
 
         /// <summary>
+        /// Gets a double value from the lobby's metadata.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to retrieve.</param>
+        /// <returns>The double value, or 0.0 if the key is not set, or NaN if it does
+        /// not convert to a number. Exact for integers up to 2^53.</returns>
+        public static double GetLobbyDataDouble(string lobbyId, string key)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetLobbyDataDouble(lobbyId, key);
+#else
+            return 0.0;
+#endif
+        }
+
+        /// <summary>
         /// Gets a boolean value from the lobby's metadata.
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
-        /// <returns>The boolean value, or false if not found.</returns>
+        /// <returns>The boolean value, or false if the key is not set. Converted the way
+        /// JavaScript would, so a stored "false" reads as true and "" reads as false.</returns>
         public static bool GetLobbyDataBool(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -815,6 +771,49 @@ namespace Wavedash
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataFloat(lobbyId, key, value);
+#else
+            return false;
+#endif
+        }
+
+        /// <summary>
+        /// Sets a double value in the lobby's metadata. Only the host can set lobby data.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to set.</param>
+        /// <param name="value">The double value to set. Exact for integers up to 2^53.
+        /// NaN and infinity are rejected.</param>
+        /// <returns>True if the operation was successful.</returns>
+        public static bool SetLobbyData(string lobbyId, string key, double value)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_SetLobbyDataDouble(lobbyId, key, value);
+#else
+            return false;
+#endif
+        }
+
+        // Without this overload a long binds to the float one, and a millisecond
+        // timestamp loses about 26 seconds before it leaves C#.
+        /// <summary>
+        /// Sets a long value in the lobby's metadata. Only the host can set lobby data.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to set.</param>
+        /// <param name="value">The long value to set. Must be within 2^53.</param>
+        /// <returns>True if the operation was successful.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">The value is outside 2^53, so a
+        /// double cannot hold it exactly.</exception>
+        public static bool SetLobbyData(string lobbyId, string key, long value)
+        {
+            if (value > MaxExactInteger || value < -MaxExactInteger)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value,
+                    "Lobby data holds numbers as a double, which is exact only to 2^53. " +
+                    "Store a larger value as a string.");
+            }
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_SetLobbyDataDouble(lobbyId, key, value);
 #else
             return false;
 #endif

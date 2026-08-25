@@ -609,13 +609,34 @@ mergeInto(LibraryManager.library, {
     return 0;
   },
 
+  // An exception escaping a jslib call halts the player, and setLobbyData throws
+  // on a value it will not take, such as a NaN.
+  $WVD_SetLobbyData: function (lobbyIdPtr, keyPtr, value) {
+    if (typeof window === 'undefined' ||
+        !window.WavedashJS ||
+        typeof window.WavedashJS.setLobbyData !== 'function') {
+      return false;
+    }
+    try {
+      return !!window.WavedashJS.setLobbyData(UTF8ToString(lobbyIdPtr), UTF8ToString(keyPtr), value);
+    } catch (e) {
+      console.error('WavedashJS.setLobbyData: ' + e);
+      return false;
+    }
+  },
+
   $WVD_LobbyDataValue: function (lobbyIdPtr, keyPtr) {
     if (typeof window === 'undefined' ||
         !window.WavedashJS ||
         typeof window.WavedashJS.getLobbyData !== 'function') {
       return null;
     }
-    return window.WavedashJS.getLobbyData(UTF8ToString(lobbyIdPtr), UTF8ToString(keyPtr));
+    try {
+      return window.WavedashJS.getLobbyData(UTF8ToString(lobbyIdPtr), UTF8ToString(keyPtr));
+    } catch (e) {
+      console.error('WavedashJS.getLobbyData: ' + e);
+      return null;
+    }
   },
 
   WavedashJS_HasLobbyData__deps: ['$WVD_LobbyDataValue'],
@@ -623,123 +644,64 @@ mergeInto(LibraryManager.library, {
     return WVD_LobbyDataValue(lobbyIdPtr, keyPtr) != null;
   },
 
-  WavedashJS_HasLobbyDataString__deps: ['$WVD_LobbyDataValue'],
-  WavedashJS_HasLobbyDataString: function (lobbyIdPtr, keyPtr) {
-    return typeof WVD_LobbyDataValue(lobbyIdPtr, keyPtr) === 'string';
-  },
-
-  // Not just 'number': GetLobbyDataInt returns through an int, so a fractional
-  // value would truncate rather than round-trip.
-  WavedashJS_HasLobbyDataInt__deps: ['$WVD_LobbyDataValue'],
-  WavedashJS_HasLobbyDataInt: function (lobbyIdPtr, keyPtr) {
-    return Number.isInteger(WVD_LobbyDataValue(lobbyIdPtr, keyPtr));
-  },
-
-  WavedashJS_HasLobbyDataFloat__deps: ['$WVD_LobbyDataValue'],
-  WavedashJS_HasLobbyDataFloat: function (lobbyIdPtr, keyPtr) {
-    return typeof WVD_LobbyDataValue(lobbyIdPtr, keyPtr) === 'number';
-  },
-
-  WavedashJS_HasLobbyDataBool__deps: ['$WVD_LobbyDataValue'],
-  WavedashJS_HasLobbyDataBool: function (lobbyIdPtr, keyPtr) {
-    return typeof WVD_LobbyDataValue(lobbyIdPtr, keyPtr) === 'boolean';
-  },
-
-  WavedashJS_GetLobbyDataString__deps: ['$AllocUTF8'],
+  WavedashJS_GetLobbyDataString__deps: ['$AllocUTF8', '$WVD_LobbyDataValue'],
   WavedashJS_GetLobbyDataString: function (lobbyIdPtr, keyPtr) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.getLobbyData === 'function') {
-      var value = window.WavedashJS.getLobbyData(lobbyId, key);
-      if (value != null) {
-        return AllocUTF8(String(value));
-      }
-    }
-    return 0;
+    var value = WVD_LobbyDataValue(lobbyIdPtr, keyPtr);
+    return value == null ? 0 : AllocUTF8(String(value));
   },
 
+  WavedashJS_GetLobbyDataInt__deps: ['$WVD_LobbyDataValue'],
   WavedashJS_GetLobbyDataInt: function (lobbyIdPtr, keyPtr) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.getLobbyData === 'function') {
-      var val = window.WavedashJS.getLobbyData(lobbyId, key);
-      return typeof val === 'number' ? val : 0;
+    var value = WVD_LobbyDataValue(lobbyIdPtr, keyPtr);
+    if (value == null) {
+      return 0;
     }
-    return 0;
+    var num = Number(value);
+    return isFinite(num) ? Math.trunc(num) : 0;
   },
 
+  WavedashJS_GetLobbyDataFloat__deps: ['$WVD_LobbyDataValue'],
   WavedashJS_GetLobbyDataFloat: function (lobbyIdPtr, keyPtr) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.getLobbyData === 'function') {
-      var val = window.WavedashJS.getLobbyData(lobbyId, key);
-      return typeof val === 'number' ? val : 0.0;
-    }
-    return 0.0;
+    var value = WVD_LobbyDataValue(lobbyIdPtr, keyPtr);
+    return value == null ? 0.0 : Number(value);
   },
 
+  WavedashJS_GetLobbyDataDouble__deps: ['$WVD_LobbyDataValue'],
+  WavedashJS_GetLobbyDataDouble: function (lobbyIdPtr, keyPtr) {
+    var value = WVD_LobbyDataValue(lobbyIdPtr, keyPtr);
+    return value == null ? 0.0 : Number(value);
+  },
+
+  WavedashJS_GetLobbyDataBool__deps: ['$WVD_LobbyDataValue'],
   WavedashJS_GetLobbyDataBool: function (lobbyIdPtr, keyPtr) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.getLobbyData === 'function') {
-      var val = window.WavedashJS.getLobbyData(lobbyId, key);
-      return typeof val === 'boolean' ? val : false;
-    }
-    return false;
+    var value = WVD_LobbyDataValue(lobbyIdPtr, keyPtr);
+    return value == null ? false : Boolean(value);
   },
 
+  WavedashJS_SetLobbyDataString__deps: ['$WVD_SetLobbyData'],
   WavedashJS_SetLobbyDataString: function (lobbyIdPtr, keyPtr, valuePtr) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    var value = UTF8ToString(valuePtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.setLobbyData === 'function') {
-      return !!window.WavedashJS.setLobbyData(lobbyId, key, value);
-    }
-    return false;
+    return WVD_SetLobbyData(lobbyIdPtr, keyPtr, UTF8ToString(valuePtr));
   },
 
+  WavedashJS_SetLobbyDataInt__deps: ['$WVD_SetLobbyData'],
   WavedashJS_SetLobbyDataInt: function (lobbyIdPtr, keyPtr, value) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.setLobbyData === 'function') {
-      return !!window.WavedashJS.setLobbyData(lobbyId, key, value);
-    }
-    return false;
+    return WVD_SetLobbyData(lobbyIdPtr, keyPtr, value);
   },
 
+  WavedashJS_SetLobbyDataFloat__deps: ['$WVD_SetLobbyData'],
   WavedashJS_SetLobbyDataFloat: function (lobbyIdPtr, keyPtr, value) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.setLobbyData === 'function') {
-      return !!window.WavedashJS.setLobbyData(lobbyId, key, value);
-    }
-    return false;
+    return WVD_SetLobbyData(lobbyIdPtr, keyPtr, value);
   },
 
+  WavedashJS_SetLobbyDataDouble__deps: ['$WVD_SetLobbyData'],
+  WavedashJS_SetLobbyDataDouble: function (lobbyIdPtr, keyPtr, value) {
+    return WVD_SetLobbyData(lobbyIdPtr, keyPtr, value);
+  },
+
+  WavedashJS_SetLobbyDataBool__deps: ['$WVD_SetLobbyData'],
   WavedashJS_SetLobbyDataBool: function (lobbyIdPtr, keyPtr, value) {
-    var lobbyId = UTF8ToString(lobbyIdPtr);
-    var key = UTF8ToString(keyPtr);
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.setLobbyData === 'function') {
-      // Unity marshals C# bool as 0/1, so store a real boolean.
-      return !!window.WavedashJS.setLobbyData(lobbyId, key, !!value);
-    }
-    return false;
+    // Unity marshals C# bool as 0/1, so store a real boolean.
+    return WVD_SetLobbyData(lobbyIdPtr, keyPtr, !!value);
   },
 
   WavedashJS_DeleteLobbyData: function (lobbyIdPtr, keyPtr) {
