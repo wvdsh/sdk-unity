@@ -83,7 +83,8 @@ namespace Wavedash
         public delegate void JsCallback(string responseJson);
         private static JsCallback _callbackDelegate; // keep alive
 
-        private const long MaxExactInteger = 9007199254740992L;
+        // Any integer after this is not guaranteed to be able to be represented correctly as a js Number
+        private const long MaxExactInteger = 1L << 53;
 
         #region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
