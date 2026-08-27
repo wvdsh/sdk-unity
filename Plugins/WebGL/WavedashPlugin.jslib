@@ -241,7 +241,7 @@ mergeInto(LibraryManager.library, {
 
   WavedashJS_GetLeaderboardEntryCount: function (leaderboardIdPtr) {
     var lbId = UTF8ToString(leaderboardIdPtr);
-  
+
     if (typeof window !== 'undefined' &&
         window.WavedashJS &&
         typeof window.WavedashJS.getLeaderboardEntryCount === 'function') {
@@ -254,7 +254,7 @@ mergeInto(LibraryManager.library, {
         console.error("getLeaderboardEntryCount failed:", e);
       }
     }
-  
+
     return 0;
   },
 
@@ -641,13 +641,13 @@ mergeInto(LibraryManager.library, {
 
   WavedashJS_HasLobbyData__deps: ['$WVD_LobbyDataValue'],
   WavedashJS_HasLobbyData: function (lobbyIdPtr, keyPtr) {
-    return WVD_LobbyDataValue(lobbyIdPtr, keyPtr) != null;
+    return WVD_LobbyDataValue(lobbyIdPtr, keyPtr) !== null;
   },
 
   WavedashJS_GetLobbyDataString__deps: ['$AllocUTF8', '$WVD_LobbyDataValue'],
   WavedashJS_GetLobbyDataString: function (lobbyIdPtr, keyPtr) {
     var value = WVD_LobbyDataValue(lobbyIdPtr, keyPtr);
-    return value == null ? 0 : AllocUTF8(String(value));
+    return value === null ? 0 : AllocUTF8(String(value));
   },
 
   WavedashJS_GetLobbyDataInt__deps: ['$WVD_LobbyDataValue'],

@@ -654,8 +654,6 @@ namespace Wavedash
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
         /// <returns>The value as a string, or null if not found.</returns>
-        // Answers null where every other getter answers its type's zero value.
-        // Kept because callers already null check it.
         public static string GetLobbyDataString(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -710,6 +708,28 @@ namespace Wavedash
             return WavedashJS_GetLobbyDataDouble(lobbyId, key);
 #else
             return 0.0;
+#endif
+        }
+
+        /// <summary>
+        /// Gets a long value from the lobby's metadata.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby.</param>
+        /// <param name="key">The metadata key to retrieve.</param>
+        /// <returns>The long value, truncated, or 0 if the key is not set, does not convert
+        /// to a number, or lies outside 2^53. Held as a double, so this is a cast of
+        /// that double.</returns>
+        public static long GetLobbyDataLong(string lobbyId, string key)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            double value = WavedashJS_GetLobbyDataDouble(lobbyId, key);
+            if (value >= -MaxExactInteger && value <= MaxExactInteger)
+            {
+                return (long)value;
+            }
+            return 0;
+#else
+            return 0;
 #endif
         }
 
@@ -801,7 +821,8 @@ namespace Wavedash
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to set.</param>
-        /// <param name="value">The long value to set. Must be within 2^53.</param>
+        /// <param name="value">The long value to set. Must be within 2^53 because it's held as a
+        /// double, read it back with GetLobbyDataLong.</param>
         /// <returns>True if the operation was successful.</returns>
         /// <exception cref="ArgumentOutOfRangeException">The value is outside 2^53, so a
         /// double cannot hold it exactly.</exception>
