@@ -65,6 +65,14 @@ namespace Wavedash
         /// Fired when the host page mutes or unmutes the game. Payload: { isMuted: bool }.
         /// </summary>
         public static event Action<Dictionary<string, object>> OnMuteChanged;
+        // Paid content events
+        /// <summary>
+        /// Fired when the player is granted paid content, regardless of source (the game's own
+        /// <see cref="TriggerPaywall"/>, a purchase on the game page, or a gift redemption).
+        /// Entitlements are already refreshed when this fires, so <see cref="IsEntitled"/>
+        /// reflects the new content. Payload: { contentIdentifiers: string[] }.
+        /// </summary>
+        public static event Action<Dictionary<string, object>> OnEntitlementsGranted;
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -126,6 +134,12 @@ namespace Wavedash
         [DllImport("__Internal")]
         private static extern void WavedashJS_ListAvailableLobbies(
             bool friendsOnly,
+            IntPtr callbackPtr,
+            string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_GetLobby(
+            string lobbyId,
             IntPtr callbackPtr,
             string requestId);
 
@@ -622,6 +636,19 @@ namespace Wavedash
                 WavedashJS_ListAvailableLobbies(friendsOnly, fnPtr, requestId));
 #else
             Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
+
+        /// <summary>
+        /// Fetches a lobby by ID.
+        /// </summary>
+        /// <param name="lobbyId">The ID of the lobby to fetch.</param>
+        /// <returns>The lobby data, or null on failure.</returns>
+        public static Task<Dictionary<string, object>> GetLobby(string lobbyId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_GetLobby(lobbyId, fnPtr, requestId));
+#else
+            Task.FromResult<Dictionary<string, object>>(null);
 #endif
 
         public static string GetLobbyHostId(string lobbyId)
@@ -2060,6 +2087,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("MuteChanged Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, OnMuteChanged);
+            }
+
+            public void EntitlementsGranted(string dataJson)
+            {
+                if (_debug) Debug.Log("EntitlementsGranted Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, OnEntitlementsGranted);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)
