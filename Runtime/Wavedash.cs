@@ -91,8 +91,8 @@ namespace Wavedash
         public delegate void JsCallback(string responseJson);
         private static JsCallback _callbackDelegate; // keep alive
 
-        // Any integer after this is not guaranteed to be able to be represented correctly as a js Number
-        private const long MaxExactInteger = 1L << 53;
+        // Integers out of this range are not guaranteed to be represented correctly as a JS Number
+        private const long JS_MAX_EXACT_INTEGER = 1L << 53;
 
         #region WavedashJS Functions
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -728,7 +728,7 @@ namespace Wavedash
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
         /// <returns>The double value, or 0.0 if the key is not set, or NaN if it does
-        /// not convert to a number. Exact for integers up to 2^53.</returns>
+        /// not convert to a number.</returns>
         public static double GetLobbyDataDouble(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -743,18 +743,12 @@ namespace Wavedash
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to retrieve.</param>
-        /// <returns>The long value, truncated, or 0 if the key is not set, does not convert
-        /// to a number, or lies outside 2^53. Held as a double, so this is a cast of
-        /// that double.</returns>
+        /// <returns>The underlying value, cast to a long. 0 if the key does not exist.</returns>
         public static long GetLobbyDataLong(string lobbyId, string key)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             double value = WavedashJS_GetLobbyDataDouble(lobbyId, key);
-            if (value >= -MaxExactInteger && value <= MaxExactInteger)
-            {
-                return (long)value;
-            }
-            return 0;
+            return (long)value;
 #else
             return 0;
 #endif
@@ -797,7 +791,7 @@ namespace Wavedash
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to set.</param>
-        /// <param name="value">The integer value to set.</param>
+        /// <param name="value">The int value to set.</param>
         /// <returns>True if the operation was successful.</returns>
         public static bool SetLobbyData(string lobbyId, string key, int value)
         {
@@ -829,8 +823,7 @@ namespace Wavedash
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to set.</param>
-        /// <param name="value">The double value to set. Exact for integers up to 2^53.
-        /// NaN and infinity are rejected.</param>
+        /// <param name="value">The double value to set.</param>
         /// <returns>True if the operation was successful.</returns>
         public static bool SetLobbyData(string lobbyId, string key, double value)
         {
@@ -841,25 +834,21 @@ namespace Wavedash
 #endif
         }
 
-        // Without this overload a long binds to the float one, and a millisecond
-        // timestamp loses about 26 seconds before it leaves C#.
         /// <summary>
         /// Sets a long value in the lobby's metadata. Only the host can set lobby data.
+        /// Limited to ±2^53 in order to interop accurately with JavaScript.
         /// </summary>
         /// <param name="lobbyId">The ID of the lobby.</param>
         /// <param name="key">The metadata key to set.</param>
-        /// <param name="value">The long value to set. Must be within 2^53 because it's held as a
-        /// double, read it back with GetLobbyDataLong.</param>
+        /// <param name="value">The long value to set.</param>
         /// <returns>True if the operation was successful.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">The value is outside 2^53, so a
-        /// double cannot hold it exactly.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Throws if the long value passed is outside ±2^53, as it cannot be represented accurately as a JS Number.</exception>
         public static bool SetLobbyData(string lobbyId, string key, long value)
         {
-            if (value > MaxExactInteger || value < -MaxExactInteger)
+            if (value > JS_MAX_EXACT_INTEGER || value < -JS_MAX_EXACT_INTEGER)
             {
                 throw new ArgumentOutOfRangeException(nameof(value), value,
-                    "Lobby data holds numbers as a double, which is exact only to 2^53. " +
-                    "Store a larger value as a string.");
+                    "Must be within ±2^53 (JS Number precision). Store larger integers as strings.");
             }
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataDouble(lobbyId, key, value);
@@ -1238,7 +1227,7 @@ namespace Wavedash
         /// </summary>
         /// <param name="ugcId">UGC item to attach to the entry (e.g. a replay), or null for none.</param>
         /// <param name="metadata">
-        /// Small key/value data to attach to the entry — string, int, float and bool values only
+        /// Small key/value data to attach to the entry — string, int, float, double, and bool values only
         /// (e.g. new Dictionary\<string, object\>; { { "character", "knight" }, { "deaths", 3 }, { "noHit", true } }).
         /// Store larger payloads as UGC and attach them via ugcId instead.
         /// </param>
