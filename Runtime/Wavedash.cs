@@ -22,7 +22,7 @@ namespace Wavedash
     /// Main entry point for the Wavedash SDK
     /// Usage: await SDK.GetLeaderboard("name"); etc.
     /// </summary>
-    public static class SDK
+    public static partial class SDK
     {
         // Events that JavaScript can trigger
         // Lobby events
@@ -493,7 +493,7 @@ namespace Wavedash
             }
             _p2pDrainBuffer = null; // Force reallocation with new sizes on next drain
 #else
-            Debug.LogWarning("Wavedash.Init() is only supported in WebGL builds");
+            Mock.Init(config);
 #endif
         }
 
@@ -506,6 +506,8 @@ namespace Wavedash
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             WavedashJS_ReadyForEvents();
+#else
+            Mock.ReadyForEvents();
 #endif
         }
 
@@ -528,8 +530,10 @@ namespace Wavedash
                     Debug.LogError($"Failed to parse launch params: {e.Message}");
                 }
             }
-#endif
             return new Dictionary<string, string>();
+#else
+            return Mock.GetLaunchParams();
+#endif
         }
 
         /// <summary>
@@ -556,8 +560,10 @@ namespace Wavedash
                     Debug.LogError($"Failed to parse user data: {e.Message}");
                 }
             }
-#endif
             return null;
+#else
+            return Mock.GetUser();
+#endif
         }
 
         private static Task<T> InvokeJs<T>(Action<IntPtr, string> jsInvoker)
@@ -595,7 +601,7 @@ namespace Wavedash
             InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_CreateLobby(lobbyVisibility, maxPlayers, fnPtr, requestId));
 #else
-            Task.FromResult<string>(null);
+            Mock.CreateLobby(lobbyVisibility, maxPlayers);
 #endif
 
         /// <summary>
@@ -609,7 +615,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_JoinLobby(lobbyId, fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.JoinLobby(lobbyId);
 #endif
 
         /// <summary>
@@ -623,7 +629,7 @@ namespace Wavedash
             InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_LeaveLobby(lobbyId, fnPtr, requestId));
 #else
-            Task.FromResult<string>(null);
+            Mock.LeaveLobby(lobbyId);
 #endif
 
         /// <summary>
@@ -635,7 +641,7 @@ namespace Wavedash
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListAvailableLobbies(friendsOnly, fnPtr, requestId));
 #else
-            Task.FromResult<List<Dictionary<string, object>>>(null);
+            Mock.ListAvailableLobbies(friendsOnly);
 #endif
 
         /// <summary>
@@ -648,7 +654,7 @@ namespace Wavedash
             InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
                 WavedashJS_GetLobby(lobbyId, fnPtr, requestId));
 #else
-            Task.FromResult<Dictionary<string, object>>(null);
+            Mock.GetLobby(lobbyId);
 #endif
 
         public static string GetLobbyHostId(string lobbyId)
@@ -656,7 +662,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetLobbyHostId(lobbyId);
 #else
-            return null;
+            return Mock.GetLobbyHostId(lobbyId);
 #endif
         }
 
@@ -671,7 +677,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_HasLobbyData(lobbyId, key);
 #else
-            return false;
+            return Mock.HasLobbyData(lobbyId, key);
 #endif
         }
 
@@ -690,7 +696,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetLobbyDataString(lobbyId, key);
 #else
-            return null;
+            return Mock.GetLobbyDataString(lobbyId, key);
 #endif
         }
 
@@ -709,7 +715,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetLobbyDataInt(lobbyId, key);
 #else
-            return 0;
+            return Mock.GetLobbyDataInt(lobbyId, key);
 #endif
         }
 
@@ -728,7 +734,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetLobbyDataFloat(lobbyId, key);
 #else
-            return 0.0f;
+            return Mock.GetLobbyDataFloat(lobbyId, key);
 #endif
         }
 
@@ -747,7 +753,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetLobbyDataDouble(lobbyId, key);
 #else
-            return 0.0;
+            return Mock.GetLobbyDataDouble(lobbyId, key);
 #endif
         }
 
@@ -767,7 +773,7 @@ namespace Wavedash
             double value = WavedashJS_GetLobbyDataDouble(lobbyId, key);
             return (long)value;
 #else
-            return 0;
+            return Mock.GetLobbyDataLong(lobbyId, key);
 #endif
         }
 
@@ -786,7 +792,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetLobbyDataBool(lobbyId, key);
 #else
-            return false;
+            return Mock.GetLobbyDataBool(lobbyId, key);
 #endif
         }
 
@@ -802,7 +808,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataString(lobbyId, key, value);
 #else
-            return false;
+            return Mock.SetLobbyData(lobbyId, key, value);
 #endif
         }
 
@@ -818,7 +824,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataInt(lobbyId, key, value);
 #else
-            return false;
+            return Mock.SetLobbyData(lobbyId, key, value);
 #endif
         }
 
@@ -834,7 +840,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataFloat(lobbyId, key, value);
 #else
-            return false;
+            return Mock.SetLobbyData(lobbyId, key, value);
 #endif
         }
 
@@ -850,7 +856,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataDouble(lobbyId, key, value);
 #else
-            return false;
+            return Mock.SetLobbyData(lobbyId, key, value);
 #endif
         }
 
@@ -873,7 +879,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataDouble(lobbyId, key, value);
 #else
-            return false;
+            return Mock.SetLobbyData(lobbyId, key, value);
 #endif
         }
 
@@ -889,7 +895,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetLobbyDataBool(lobbyId, key, value);
 #else
-            return false;
+            return Mock.SetLobbyData(lobbyId, key, value);
 #endif
         }
 
@@ -904,7 +910,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_DeleteLobbyData(lobbyId, key);
 #else
-            return false;
+            return Mock.DeleteLobbyData(lobbyId, key);
 #endif
         }
 
@@ -928,8 +934,10 @@ namespace Wavedash
                     Debug.LogError($"Failed to parse lobby users: {e.Message}");
                 }
             }
-#endif
             return new List<Dictionary<string, object>>();
+#else
+            return Mock.GetLobbyUsers(lobbyId);
+#endif
         }
 
         /// <summary>
@@ -942,7 +950,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetNumLobbyUsers(lobbyId);
 #else
-            return 0;
+            return Mock.GetNumLobbyUsers(lobbyId);
 #endif
         }
 
@@ -958,7 +966,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SendLobbyMessage(lobbyId, message);
 #else
-            return false;
+            return Mock.SendLobbyChatMessage(lobbyId, message);
 #endif
         }
 
@@ -972,7 +980,7 @@ namespace Wavedash
             InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_GetLobbyInviteLink(copyToClipboard, fnPtr, requestId));
 #else
-            Task.FromResult<string>(null);
+            Mock.GetLobbyInviteLink(copyToClipboard);
 #endif
 
         /// <summary>
@@ -987,7 +995,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_InviteUserToLobby(lobbyId, userId, fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.InviteUserToLobby(lobbyId, userId);
 #endif
 
         // ===========
@@ -1046,7 +1054,7 @@ namespace Wavedash
                 handle.Free();
             }
 #else
-            return false;
+            return Mock.BroadcastP2PMessage(payload, channel, reliable);
 #endif
         }
 
@@ -1079,7 +1087,7 @@ namespace Wavedash
                 handle.Free();
             }
 #else
-            return false;
+            return Mock.SendP2PMessage(targetUserId, payload, channel, reliable);
 #endif
         }
 
@@ -1146,7 +1154,7 @@ namespace Wavedash
 
             return messages.Count;
 #else
-            return 0;
+            return Mock.DrainP2PChannel(channel, messages);
 #endif
         }
 
@@ -1211,7 +1219,7 @@ namespace Wavedash
             InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
                 WavedashJS_GetOrCreateLeaderboard(leaderboardName, sortMethod, displayType, fnPtr, requestId));
 #else
-            Task.FromResult<Dictionary<string, object>>(null);
+            Mock.GetOrCreateLeaderboard(leaderboardName, sortMethod, displayType);
 #endif
 
         public static Task<Dictionary<string, object>> GetLeaderboard(string leaderboardName) =>
@@ -1219,7 +1227,7 @@ namespace Wavedash
             InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
                 WavedashJS_GetLeaderboard(leaderboardName, fnPtr, requestId));
 #else
-            Task.FromResult<Dictionary<string, object>>(null);
+            Mock.GetLeaderboard(leaderboardName);
 #endif
 
         public static int GetLeaderboardEntryCount(string leaderboardId)
@@ -1227,7 +1235,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetLeaderboardEntryCount(leaderboardId);
 #else
-            return 0;
+            return Mock.GetLeaderboardEntryCount(leaderboardId);
 #endif
         }
 
@@ -1236,7 +1244,7 @@ namespace Wavedash
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_GetMyLeaderboardEntries(leaderboardId, fnPtr, requestId));
 #else
-            Task.FromResult<List<Dictionary<string, object>>>(null);
+            Mock.GetMyLeaderboardEntries(leaderboardId);
 #endif
 
         /// <summary>
@@ -1267,7 +1275,7 @@ namespace Wavedash
             return InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
                 WavedashJS_UploadLeaderboardScore(leaderboardId, score, keepBest, ugcId, metadataJson, fnPtr, requestId));
 #else
-            return Task.FromResult<Dictionary<string, object>>(null);
+            return Mock.UploadLeaderboardScore(leaderboardId, score, keepBest, ugcId, metadata);
 #endif
         }
 
@@ -1276,7 +1284,7 @@ namespace Wavedash
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListLeaderboardEntries(leaderboardId, offset, limit, friendsOnly, fnPtr, requestId));
 #else
-            Task.FromResult<List<Dictionary<string, object>>>(null);
+            Mock.ListLeaderboardEntries(leaderboardId, offset, limit, friendsOnly);
 #endif
 
         public static Task<List<Dictionary<string, object>>> ListLeaderboardEntriesAroundUser(string leaderboardId, int countAhead, int countBehind, bool friendsOnly = false) =>
@@ -1284,7 +1292,7 @@ namespace Wavedash
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListLeaderboardEntriesAroundUser(leaderboardId, countAhead, countBehind, friendsOnly, fnPtr, requestId));
 #else
-            Task.FromResult<List<Dictionary<string, object>>>(null);
+            Mock.ListLeaderboardEntriesAroundUser(leaderboardId, countAhead, countBehind, friendsOnly);
 #endif
 
         // ===========
@@ -1300,7 +1308,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_UploadRemoteFile(path, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.UploadRemoteFile(path);
 #endif
         }
 
@@ -1324,7 +1332,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_DownloadRemoteFile(path, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.DownloadRemoteFile(path);
 #endif
         }
 
@@ -1339,7 +1347,7 @@ namespace Wavedash
             return InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_RemoteFileExists(path, fnPtr, requestId));
 #else
-            return Task.FromResult(false);
+            return Mock.RemoteFileExists(path);
 #endif
         }
 
@@ -1354,7 +1362,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_DeleteRemoteFile(path, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.DeleteRemoteFile(path);
 #endif
         }
 
@@ -1369,7 +1377,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_DownloadRemoteDirectory(path, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.DownloadRemoteDirectory(path);
 #endif
         }
 
@@ -1384,7 +1392,7 @@ namespace Wavedash
             return InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListRemoteDirectory(path, fnPtr, requestId));
 #else
-            return Task.FromResult<List<Dictionary<string, object>>>(null);
+            return Mock.ListRemoteDirectory(path);
 #endif
         }
 
@@ -1403,7 +1411,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_CreateUGCItem(ugcType, title, description, visibility, filePath, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.CreateUGCItem(ugcType, title, description, visibility, filePath);
 #endif
         }
 
@@ -1413,7 +1421,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_DownloadUGCItem(ugcId, filePath, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.DownloadUGCItem(ugcId, filePath);
 #endif
         }
 
@@ -1428,7 +1436,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_DeleteUGCItem(ugcId, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.DeleteUGCItem(ugcId);
 #endif
         }
 
@@ -1452,7 +1460,7 @@ namespace Wavedash
             return InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_UpdateUGCItem(ugcId, title, description, visibility ?? -1, filePath, fnPtr, requestId));
 #else
-            return Task.FromResult<string>(null);
+            return Mock.UpdateUGCItem(ugcId, title, description, visibility, filePath);
 #endif
         }
 
@@ -1471,7 +1479,7 @@ namespace Wavedash
             return InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_UpdateUserPresence(dataJson, fnPtr, requestId));
 #else
-            return Task.FromResult(false);
+            return Mock.UpdateUserPresence(data);
 #endif
         }
 
@@ -1492,7 +1500,7 @@ namespace Wavedash
             return InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
                 WavedashJS_ListUGCItems(createdBy, ugcType ?? -1, titleSearch, numItems ?? 0, continueCursor, fnPtr, requestId));
 #else
-            return Task.FromResult<Dictionary<string, object>>(null);
+            return Mock.ListUGCItems(createdBy, ugcType, titleSearch, numItems, continueCursor);
 #endif
         }
 
@@ -1510,7 +1518,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_RequestStats(fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.RequestStats();
 #endif
 
         /// <summary>
@@ -1524,7 +1532,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetStatInt(statName, value, storeNow);
 #else
-            return false;
+            return Mock.SetStatInt(statName, value, storeNow);
 #endif
         }
 
@@ -1539,7 +1547,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetStatInt(statName);
 #else
-            return 0;
+            return Mock.GetStatInt(statName);
 #endif
         }
 
@@ -1554,7 +1562,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetStatFloat(statName, value, storeNow);
 #else
-            return false;
+            return Mock.SetStatFloat(statName, value, storeNow);
 #endif
         }
 
@@ -1569,7 +1577,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetStatFloat(statName);
 #else
-            return 0.0f;
+            return Mock.GetStatFloat(statName);
 #endif
         }
 
@@ -1583,7 +1591,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_SetAchievement(achievementName, storeNow);
 #else
-            return false;
+            return Mock.SetAchievement(achievementName, storeNow);
 #endif
         }
 
@@ -1598,7 +1606,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetAchievement(achievementName);
 #else
-            return false;
+            return Mock.GetAchievement(achievementName);
 #endif
         }
 
@@ -1611,7 +1619,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_StoreStats();
 #else
-            return false;
+            return Mock.StoreStats();
 #endif
         }
 
@@ -1626,6 +1634,8 @@ namespace Wavedash
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             WavedashJS_ToggleOverlay();
+#else
+            Mock.ToggleOverlay();
 #endif
         }
 
@@ -1642,7 +1652,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_IsFullscreen();
 #else
-            return false;
+            return Mock.IsFullscreen;
 #endif
         }
 
@@ -1657,7 +1667,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_RequestFullscreen(fullscreen, fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.RequestFullscreen(fullscreen);
 #endif
 
         /// <summary>
@@ -1670,7 +1680,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_ToggleFullscreen(fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.ToggleFullscreen();
 #endif
 
         /// <summary>
@@ -1682,7 +1692,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_IsMuted();
 #else
-            return false;
+            return Mock.IsMuted;
 #endif
         }
 
@@ -1698,7 +1708,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_RequestMute(muted, fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.RequestMute(muted);
 #endif
 
         /// <summary>
@@ -1713,7 +1723,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_ToggleMute(fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.ToggleMute();
 #endif
 
         // ===========
@@ -1735,7 +1745,7 @@ namespace Wavedash
             _cachedUserId = WavedashJS_GetUserId();
             return _cachedUserId;
 #else
-            return null;
+            return Mock.GetUserId();
 #endif
         }
 
@@ -1754,7 +1764,7 @@ namespace Wavedash
             _cachedUsername = WavedashJS_GetUsername();
             return _cachedUsername;
 #else
-            return null;
+            return Mock.GetUsername();
 #endif
         }
 
@@ -1769,7 +1779,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetUsernameForUser(userId);
 #else
-            return null;
+            return Mock.GetUsername(userId);
 #endif
         }
 
@@ -1785,7 +1795,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetUserAvatarUrl(userId, size);
 #else
-            return null;
+            return Mock.GetUserAvatarUrl(userId, size);
 #endif
         }
 
@@ -1798,7 +1808,6 @@ namespace Wavedash
         /// <returns>Texture2D on success, null if user not cached, has no avatar, or fetch fails.</returns>
         public static async Task<Texture2D> GetUserAvatar(string userId, int size = WavedashConstants.AvatarSize.MEDIUM)
         {
-#if UNITY_WEBGL && !UNITY_EDITOR
             var url = GetUserAvatarUrl(userId, size);
             if (string.IsNullOrEmpty(url)) return null;
 
@@ -1817,9 +1826,6 @@ namespace Wavedash
                 Debug.LogWarning($"Failed to load avatar for {userId}: {request.error}");
                 return null;
             }
-#else
-            return null;
-#endif
         }
 
         /// <summary>
@@ -1832,7 +1838,7 @@ namespace Wavedash
             InvokeJs<string>((fnPtr, requestId) =>
                 WavedashJS_GetUserJwt(fnPtr, requestId));
 #else
-            Task.FromResult<string>(null);
+            Mock.GetUserJwt();
 #endif
 
         // ===========
@@ -1851,7 +1857,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_IsEntitled(contentIdentifier, fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.IsEntitled(contentIdentifier);
 #endif
 
         /// <summary>
@@ -1865,7 +1871,7 @@ namespace Wavedash
             InvokeJs<List<string>>((fnPtr, requestId) =>
                 WavedashJS_GetEntitlements(fnPtr, requestId));
 #else
-            Task.FromResult<List<string>>(null);
+            Mock.GetEntitlements();
 #endif
 
         /// <summary>
@@ -1880,7 +1886,7 @@ namespace Wavedash
             InvokeJs<bool>((fnPtr, requestId) =>
                 WavedashJS_TriggerPaywall(contentIdentifier, fnPtr, requestId));
 #else
-            Task.FromResult(false);
+            Mock.TriggerPaywall(contentIdentifier);
 #endif
 
         // ===========
@@ -1898,7 +1904,7 @@ namespace Wavedash
             InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
                 WavedashJS_ListFriends(fnPtr, requestId));
 #else
-            Task.FromResult<List<Dictionary<string, object>>>(null);
+            Mock.ListFriends();
 #endif
 #endregion
 
@@ -1988,7 +1994,7 @@ namespace Wavedash
             }
         }
 
-        private class WavedashCallbackReceiver : MonoBehaviour
+        private partial class WavedashCallbackReceiver : MonoBehaviour
         {
             public void LobbyJoined(string dataJson)
             {
