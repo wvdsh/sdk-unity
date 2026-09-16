@@ -33,11 +33,15 @@ mergeInto(LibraryManager.library, {
   // === Helpers (JS library variables) ===
   // Define with $Name; call as Name(...) at runtime.
   $__getWasmFunction: function (ptr) {
-    if (typeof Module !== "undefined" && Module["wasmTable"]) {
-      return Module["wasmTable"].get(ptr);
-    }
     if (typeof wasmTable !== "undefined") {
       return wasmTable.get(ptr);
+    }
+    try {
+      if (typeof Module !== "undefined" && Module["wasmTable"]) {
+        return Module["wasmTable"].get(ptr);
+      }
+    } catch (e) {
+      console.warn("[Wavedash] Module.wasmTable is not readable in this build, falling back to dynCall_vi:", e);
     }
     if (typeof dynCall_vi !== "undefined") {
       return function (arg) { dynCall_vi(ptr, arg); };
