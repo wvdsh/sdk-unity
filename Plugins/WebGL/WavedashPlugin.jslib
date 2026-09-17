@@ -36,12 +36,9 @@ mergeInto(LibraryManager.library, {
     if (typeof wasmTable !== "undefined") {
       return wasmTable.get(ptr);
     }
-    try {
-      if (typeof Module !== "undefined" && Module["wasmTable"]) {
-        return Module["wasmTable"].get(ptr);
-      }
-    } catch (e) {
-      console.warn("[Wavedash] Module.wasmTable is not readable in this build, falling back to dynCall_vi:", e);
+    var exported = Object.getOwnPropertyDescriptor(Module, "wasmTable");
+    if (exported && exported.value && typeof exported.value.get === "function") {
+      return exported.value.get(ptr);
     }
     if (typeof dynCall_vi !== "undefined") {
       return function (arg) { dynCall_vi(ptr, arg); };
