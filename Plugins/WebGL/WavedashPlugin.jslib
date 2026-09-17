@@ -33,11 +33,12 @@ mergeInto(LibraryManager.library, {
   // === Helpers (JS library variables) ===
   // Define with $Name; call as Name(...) at runtime.
   $__getWasmFunction: function (ptr) {
-    if (typeof Module !== "undefined" && Module["wasmTable"]) {
-      return Module["wasmTable"].get(ptr);
-    }
     if (typeof wasmTable !== "undefined") {
       return wasmTable.get(ptr);
+    }
+    var exported = Object.getOwnPropertyDescriptor(Module, "wasmTable");
+    if (exported && exported.value && typeof exported.value.get === "function") {
+      return exported.value.get(ptr);
     }
     if (typeof dynCall_vi !== "undefined") {
       return function (arg) { dynCall_vi(ptr, arg); };
