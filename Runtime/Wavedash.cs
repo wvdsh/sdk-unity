@@ -84,7 +84,7 @@ namespace Wavedash
         private static string _cachedUsername;
 
         // Pending TaskCompletionSources by requestId
-        private static readonly Dictionary<string, object> _pending = new();
+        private static readonly Dictionary<string, object> _pending = new Dictionary<string, object>();
 
         // jslib -> Unity callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

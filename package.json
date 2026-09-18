@@ -3,7 +3,7 @@
   "version": "1.2.11",
   "displayName": "Wavedash SDK",
   "description": "Unity SDK for integrating Wavedash services in Web builds. Provides seamless JavaScript interop for Unity games to utilize Wavedash Online Services.",
-  "unity": "6000.0",
+  "unity": "2020.3",
   "unityRelease": "0f1",
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.0.2"

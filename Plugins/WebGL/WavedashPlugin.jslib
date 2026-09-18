@@ -36,12 +36,12 @@ mergeInto(LibraryManager.library, {
     if (typeof wasmTable !== "undefined") {
       return wasmTable.get(ptr);
     }
+    if (typeof dynCall_vi !== "undefined") {
+      return function (arg) { dynCall_vi(ptr, arg); };
+    }
     var exported = Object.getOwnPropertyDescriptor(Module, "wasmTable");
     if (exported && exported.value && typeof exported.value.get === "function") {
       return exported.value.get(ptr);
-    }
-    if (typeof dynCall_vi !== "undefined") {
-      return function (arg) { dynCall_vi(ptr, arg); };
     }
     throw new Error("Could not resolve function pointer " + ptr);
   },
