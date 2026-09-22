@@ -24,20 +24,76 @@ namespace Wavedash
     /// </summary>
     public static class SDK
     {
-        // Events that JavaScript can trigger
+        // Events that JavaScript can trigger.
+        // The first subscriber reports the event to the JS SDK. Nothing runs per frame.
         // Lobby events
-        public static event Action<Dictionary<string, object>> OnLobbyJoined;
-        public static event Action<Dictionary<string, object>> OnLobbyKicked;
-        public static event Action<Dictionary<string, object>> OnLobbyMessage;
-        public static event Action<Dictionary<string, object>> OnLobbyDataUpdated;
-        public static event Action<Dictionary<string, object>> OnLobbyUsersUpdated;
-        public static event Action<Dictionary<string, object>> OnLobbyInvite;
+        private static Action<Dictionary<string, object>> _onLobbyJoined;
+        public static event Action<Dictionary<string, object>> OnLobbyJoined
+        {
+            add => Subscribe(ref _onLobbyJoined, "LobbyJoined", value);
+            remove => _onLobbyJoined -= value;
+        }
+        private static Action<Dictionary<string, object>> _onLobbyKicked;
+        public static event Action<Dictionary<string, object>> OnLobbyKicked
+        {
+            add => Subscribe(ref _onLobbyKicked, "LobbyKicked", value);
+            remove => _onLobbyKicked -= value;
+        }
+        private static Action<Dictionary<string, object>> _onLobbyMessage;
+        public static event Action<Dictionary<string, object>> OnLobbyMessage
+        {
+            add => Subscribe(ref _onLobbyMessage, "LobbyMessage", value);
+            remove => _onLobbyMessage -= value;
+        }
+        private static Action<Dictionary<string, object>> _onLobbyDataUpdated;
+        public static event Action<Dictionary<string, object>> OnLobbyDataUpdated
+        {
+            add => Subscribe(ref _onLobbyDataUpdated, "LobbyDataUpdated", value);
+            remove => _onLobbyDataUpdated -= value;
+        }
+        private static Action<Dictionary<string, object>> _onLobbyUsersUpdated;
+        public static event Action<Dictionary<string, object>> OnLobbyUsersUpdated
+        {
+            add => Subscribe(ref _onLobbyUsersUpdated, "LobbyUsersUpdated", value);
+            remove => _onLobbyUsersUpdated -= value;
+        }
+        private static Action<Dictionary<string, object>> _onLobbyInvite;
+        public static event Action<Dictionary<string, object>> OnLobbyInvite
+        {
+            add => Subscribe(ref _onLobbyInvite, "LobbyInvite", value);
+            remove => _onLobbyInvite -= value;
+        }
         // P2P events
-        public static event Action<Dictionary<string, object>> OnP2PConnectionEstablished;
-        public static event Action<Dictionary<string, object>> OnP2PConnectionFailed;
-        public static event Action<Dictionary<string, object>> OnP2PPeerDisconnected;
-        public static event Action<Dictionary<string, object>> OnP2PPeerReconnecting;
-        public static event Action<Dictionary<string, object>> OnP2PPeerReconnected;
+        private static Action<Dictionary<string, object>> _onP2PConnectionEstablished;
+        public static event Action<Dictionary<string, object>> OnP2PConnectionEstablished
+        {
+            add => Subscribe(ref _onP2PConnectionEstablished, "P2PConnectionEstablished", value);
+            remove => _onP2PConnectionEstablished -= value;
+        }
+        private static Action<Dictionary<string, object>> _onP2PConnectionFailed;
+        public static event Action<Dictionary<string, object>> OnP2PConnectionFailed
+        {
+            add => Subscribe(ref _onP2PConnectionFailed, "P2PConnectionFailed", value);
+            remove => _onP2PConnectionFailed -= value;
+        }
+        private static Action<Dictionary<string, object>> _onP2PPeerDisconnected;
+        public static event Action<Dictionary<string, object>> OnP2PPeerDisconnected
+        {
+            add => Subscribe(ref _onP2PPeerDisconnected, "P2PPeerDisconnected", value);
+            remove => _onP2PPeerDisconnected -= value;
+        }
+        private static Action<Dictionary<string, object>> _onP2PPeerReconnecting;
+        public static event Action<Dictionary<string, object>> OnP2PPeerReconnecting
+        {
+            add => Subscribe(ref _onP2PPeerReconnecting, "P2PPeerReconnecting", value);
+            remove => _onP2PPeerReconnecting -= value;
+        }
+        private static Action<Dictionary<string, object>> _onP2PPeerReconnected;
+        public static event Action<Dictionary<string, object>> OnP2PPeerReconnected
+        {
+            add => Subscribe(ref _onP2PPeerReconnected, "P2PPeerReconnected", value);
+            remove => _onP2PPeerReconnected -= value;
+        }
         /// <summary>
         /// Fired when the SDK drops a P2P packet on send or receive. Payload fields:
         /// <c>channel</c> (int, -1 for malformed wire data),
@@ -48,23 +104,58 @@ namespace Wavedash
         /// Events are rate-limited per (channel, direction, reason) tuple with a
         /// short aggregation window, so bursty drops don't flood the game.
         /// </summary>
-        public static event Action<Dictionary<string, object>> OnP2PPacketDropped;
+        private static Action<Dictionary<string, object>> _onP2PPacketDropped;
+        public static event Action<Dictionary<string, object>> OnP2PPacketDropped
+        {
+            add => Subscribe(ref _onP2PPacketDropped, "P2PPacketDropped", value);
+            remove => _onP2PPacketDropped -= value;
+        }
         // Backend connection events
-        public static event Action<Dictionary<string, object>> OnBackendConnected;
-        public static event Action<Dictionary<string, object>> OnBackendDisconnected;
-        public static event Action<Dictionary<string, object>> OnBackendReconnecting;
+        private static Action<Dictionary<string, object>> _onBackendConnected;
+        public static event Action<Dictionary<string, object>> OnBackendConnected
+        {
+            add => Subscribe(ref _onBackendConnected, "BackendConnected", value);
+            remove => _onBackendConnected -= value;
+        }
+        private static Action<Dictionary<string, object>> _onBackendDisconnected;
+        public static event Action<Dictionary<string, object>> OnBackendDisconnected
+        {
+            add => Subscribe(ref _onBackendDisconnected, "BackendDisconnected", value);
+            remove => _onBackendDisconnected -= value;
+        }
+        private static Action<Dictionary<string, object>> _onBackendReconnecting;
+        public static event Action<Dictionary<string, object>> OnBackendReconnecting
+        {
+            add => Subscribe(ref _onBackendReconnecting, "BackendReconnecting", value);
+            remove => _onBackendReconnecting -= value;
+        }
         // Stats events
-        public static event Action<Dictionary<string, object>> OnStatsStored;
+        private static Action<Dictionary<string, object>> _onStatsStored;
+        public static event Action<Dictionary<string, object>> OnStatsStored
+        {
+            add => Subscribe(ref _onStatsStored, "StatsStored", value);
+            remove => _onStatsStored -= value;
+        }
         // Fullscreen events
         /// <summary>
         /// Fired when the host page enters or exits fullscreen. Payload: { isFullscreen: bool }.
         /// </summary>
-        public static event Action<Dictionary<string, object>> OnFullscreenChanged;
+        private static Action<Dictionary<string, object>> _onFullscreenChanged;
+        public static event Action<Dictionary<string, object>> OnFullscreenChanged
+        {
+            add => Subscribe(ref _onFullscreenChanged, "FullscreenChanged", value);
+            remove => _onFullscreenChanged -= value;
+        }
         // Audio events
         /// <summary>
         /// Fired when the host page mutes or unmutes the game. Payload: { isMuted: bool }.
         /// </summary>
-        public static event Action<Dictionary<string, object>> OnMuteChanged;
+        private static Action<Dictionary<string, object>> _onMuteChanged;
+        public static event Action<Dictionary<string, object>> OnMuteChanged
+        {
+            add => Subscribe(ref _onMuteChanged, "MuteChanged", value);
+            remove => _onMuteChanged -= value;
+        }
         // Paid content events
         /// <summary>
         /// Fired when the player is granted paid content, regardless of source (the game's own
@@ -72,7 +163,14 @@ namespace Wavedash
         /// Entitlements are already refreshed when this fires, so <see cref="IsEntitled"/>
         /// reflects the new content. Payload: { contentIdentifiers: string[] }.
         /// </summary>
-        public static event Action<Dictionary<string, object>> OnEntitlementsGranted;
+        private static Action<Dictionary<string, object>> _onEntitlementsGranted;
+        public static event Action<Dictionary<string, object>> OnEntitlementsGranted
+        {
+            add => Subscribe(ref _onEntitlementsGranted, "EntitlementsGranted", value);
+            remove => _onEntitlementsGranted -= value;
+        }
+
+        private static readonly HashSet<string> _trackedEventListeners = new();
 
         // Internal callback receiver instance
         private static WavedashCallbackReceiver _callbackReceiver;
@@ -452,10 +550,32 @@ namespace Wavedash
             IntPtr callbackPtr,
             string requestId);
 
+        [DllImport("__Internal")]
+        private static extern int WavedashJS_TrackEventListener(string eventName);
+
 #endif
         #endregion
 
         #region SDK Implementations
+
+        private static void Subscribe(
+            ref Action<Dictionary<string, object>> handlers,
+            string eventName,
+            Action<Dictionary<string, object>> value)
+        {
+            if (value == null) return;
+            if (_trackedEventListeners.Add(eventName))
+                TrackEventListener(eventName);
+            handlers += value;
+        }
+
+        private static void TrackEventListener(string eventName)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (WavedashJS_TrackEventListener(eventName) == 0)
+                _trackedEventListeners.Remove(eventName);
+#endif
+        }
 
         /// <summary>
         /// Automatically called at Unity startup. Sets up the engine instance
@@ -1993,115 +2113,115 @@ namespace Wavedash
             public void LobbyJoined(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyJoined Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnLobbyJoined);
+                TryInvoke(dataJson, _onLobbyJoined);
             }
 
             public void LobbyKicked(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyKicked Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnLobbyKicked);
+                TryInvoke(dataJson, _onLobbyKicked);
             }
 
             public void LobbyMessage(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyMessage Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnLobbyMessage);
+                TryInvoke(dataJson, _onLobbyMessage);
             }
 
             public void LobbyDataUpdated(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyDataUpdated Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnLobbyDataUpdated);
+                TryInvoke(dataJson, _onLobbyDataUpdated);
             }
 
             public void LobbyUsersUpdated(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyUsersUpdated Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnLobbyUsersUpdated);
+                TryInvoke(dataJson, _onLobbyUsersUpdated);
             }
 
             public void LobbyInvite(string dataJson)
             {
                 if (_debug) Debug.Log("LobbyInvite Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnLobbyInvite);
+                TryInvoke(dataJson, _onLobbyInvite);
             }
 
             public void P2PConnectionEstablished(string dataJson)
             {
                 if (_debug) Debug.Log("P2PConnectionEstablished Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnP2PConnectionEstablished);
+                TryInvoke(dataJson, _onP2PConnectionEstablished);
             }
 
             public void P2PConnectionFailed(string dataJson)
             {
                 if (_debug) Debug.Log("P2PConnectionFailed Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnP2PConnectionFailed);
+                TryInvoke(dataJson, _onP2PConnectionFailed);
             }
 
             public void P2PPeerDisconnected(string dataJson)
             {
                 if (_debug) Debug.Log("P2PPeerDisconnected Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnP2PPeerDisconnected);
+                TryInvoke(dataJson, _onP2PPeerDisconnected);
             }
 
             public void P2PPeerReconnecting(string dataJson)
             {
                 if (_debug) Debug.Log("P2PPeerReconnecting Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnP2PPeerReconnecting);
+                TryInvoke(dataJson, _onP2PPeerReconnecting);
             }
 
             public void P2PPeerReconnected(string dataJson)
             {
                 if (_debug) Debug.Log("P2PPeerReconnected Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnP2PPeerReconnected);
+                TryInvoke(dataJson, _onP2PPeerReconnected);
             }
 
             public void P2PPacketDropped(string dataJson)
             {
                 if (_debug) Debug.Log("P2PPacketDropped Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnP2PPacketDropped);
+                TryInvoke(dataJson, _onP2PPacketDropped);
             }
 
             public void BackendConnected(string dataJson)
             {
                 if (_debug) Debug.Log("BackendConnected Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnBackendConnected);
+                TryInvoke(dataJson, _onBackendConnected);
             }
 
             public void BackendDisconnected(string dataJson)
             {
                 if (_debug) Debug.Log("BackendDisconnected Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnBackendDisconnected);
+                TryInvoke(dataJson, _onBackendDisconnected);
             }
 
             public void BackendReconnecting(string dataJson)
             {
                 if (_debug) Debug.Log("BackendReconnecting Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnBackendReconnecting);
+                TryInvoke(dataJson, _onBackendReconnecting);
             }
 
             public void StatsStored(string dataJson)
             {
                 if (_debug) Debug.Log("StatsStored Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnStatsStored);
+                TryInvoke(dataJson, _onStatsStored);
             }
 
             public void FullscreenChanged(string dataJson)
             {
                 if (_debug) Debug.Log("FullscreenChanged Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnFullscreenChanged);
+                TryInvoke(dataJson, _onFullscreenChanged);
             }
 
             public void MuteChanged(string dataJson)
             {
                 if (_debug) Debug.Log("MuteChanged Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnMuteChanged);
+                TryInvoke(dataJson, _onMuteChanged);
             }
 
             public void EntitlementsGranted(string dataJson)
             {
                 if (_debug) Debug.Log("EntitlementsGranted Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, OnEntitlementsGranted);
+                TryInvoke(dataJson, _onEntitlementsGranted);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)
