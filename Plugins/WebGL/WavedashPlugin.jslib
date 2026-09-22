@@ -1173,4 +1173,14 @@ mergeInto(LibraryManager.library, {
       requestId
     );
   },
+
+  WavedashJS_TrackEventListener: function (eventNamePtr) {
+    if (typeof window === "undefined" || !window.WavedashJS ||
+        typeof window.WavedashJS.addEventListener !== "function") {
+      return 0;
+    }
+    // Add a dummy listener on this event name just to notify JS that Unity is subscribed to this event.
+    window.WavedashJS.addEventListener(UTF8ToString(eventNamePtr), function () {});
+    return 1;
+  },
 });
