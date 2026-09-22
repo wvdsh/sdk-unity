@@ -1769,33 +1769,6 @@ namespace Wavedash
             Task.FromResult(false);
 #endif
 
-        /// <summary>
-        /// Deprecated no-op. Always returns false; site audio settings are independent of the game.
-        /// </summary>
-        public static bool IsMuted()
-        {
-            Debug.LogWarning("Wavedash.IsMuted() is deprecated and is now a no-op");
-            return false;
-        }
-
-        /// <summary>
-        /// Deprecated no-op. Always resolves to false; manage game audio locally.
-        /// </summary>
-        public static Task<bool> RequestMute(bool muted)
-        {
-            Debug.LogWarning("Wavedash.RequestMute() is deprecated and is now a no-op");
-            return Task.FromResult(false);
-        }
-
-        /// <summary>
-        /// Deprecated no-op. Always resolves to false; manage game audio locally.
-        /// </summary>
-        public static Task<bool> ToggleMute()
-        {
-            Debug.LogWarning("Wavedash.ToggleMute() is deprecated and is now a no-op");
-            return Task.FromResult(false);
-        }
-
         // ===========
         // User Info
         // ===========
