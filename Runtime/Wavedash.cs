@@ -146,16 +146,16 @@ namespace Wavedash
             add => Subscribe(ref _onFullscreenChanged, "FullscreenChanged", value);
             remove => _onFullscreenChanged -= value;
         }
-        // Audio events
         /// <summary>
-        /// Fired when the host page mutes or unmutes the game. Payload: { isMuted: bool }.
+        /// Retained for compatibility. This event is no longer emitted.
         /// </summary>
-        private static Action<Dictionary<string, object>> _onMuteChanged;
+        [Obsolete("This event is no longer emitted and will be removed in a future major release.", false)]
         public static event Action<Dictionary<string, object>> OnMuteChanged
         {
-            add => Subscribe(ref _onMuteChanged, "MuteChanged", value);
-            remove => _onMuteChanged -= value;
+            add => Debug.LogWarning("Wavedash.SDK.OnMuteChanged is deprecated and is no longer emitted. It will be removed in a future major release.");
+            remove => Debug.LogWarning("Wavedash.SDK.OnMuteChanged is deprecated and is no longer emitted. It will be removed in a future major release.");
         }
+
         // Paid content events
         /// <summary>
         /// Fired when the player is granted paid content, regardless of source (the game's own
@@ -316,20 +316,6 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_ToggleFullscreen(
-            IntPtr callbackPtr,
-            string requestId);
-
-        [DllImport("__Internal")]
-        private static extern bool WavedashJS_IsMuted();
-
-        [DllImport("__Internal")]
-        private static extern void WavedashJS_RequestMute(
-            bool muted,
-            IntPtr callbackPtr,
-            string requestId);
-
-        [DllImport("__Internal")]
-        private static extern void WavedashJS_ToggleMute(
             IntPtr callbackPtr,
             string requestId);
 
@@ -1794,47 +1780,34 @@ namespace Wavedash
 #endif
 
         /// <summary>
-        /// Whether the game is currently muted.
-        /// Mirrored from the Wavedash host page, which owns the mute control.
+        /// Deprecated no-op. Always returns false; site audio settings are independent of the game.
         /// </summary>
+        [Obsolete("This method is a no-op. Manage game audio locally; it will be removed in a future major release.", false)]
         public static bool IsMuted()
         {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_IsMuted();
-#else
+            Debug.LogWarning("Wavedash.SDK.IsMuted() is deprecated and is now a no-op. Manage game audio locally; this method will be removed in a future major release.");
             return false;
-#endif
         }
 
         /// <summary>
-        /// Ask the host to mute (true) or unmute (false).
+        /// Deprecated no-op. Always resolves to false; manage game audio locally.
         /// </summary>
-        /// <returns>
-        /// True if the change was applied, false if it was rejected — the host
-        /// won't let the game unmute when the player has explicitly muted from the Wavedash UI.
-        /// </returns>
-        public static Task<bool> RequestMute(bool muted) =>
-#if UNITY_WEBGL && !UNITY_EDITOR
-            InvokeJs<bool>((fnPtr, requestId) =>
-                WavedashJS_RequestMute(muted, fnPtr, requestId));
-#else
-            Task.FromResult(false);
-#endif
+        [Obsolete("This method is a no-op. Manage game audio locally; it will be removed in a future major release.", false)]
+        public static Task<bool> RequestMute(bool muted)
+        {
+            Debug.LogWarning("Wavedash.SDK.RequestMute() is deprecated and is now a no-op. Manage game audio locally; this method will be removed in a future major release.");
+            return Task.FromResult(false);
+        }
 
         /// <summary>
-        /// Toggle mute.
+        /// Deprecated no-op. Always resolves to false; manage game audio locally.
         /// </summary>
-        /// <returns>
-        /// True if the change was applied, false if it was rejected (e.g. trying
-        /// to unmute over an explicit player mute).
-        /// </returns>
-        public static Task<bool> ToggleMute() =>
-#if UNITY_WEBGL && !UNITY_EDITOR
-            InvokeJs<bool>((fnPtr, requestId) =>
-                WavedashJS_ToggleMute(fnPtr, requestId));
-#else
-            Task.FromResult(false);
-#endif
+        [Obsolete("This method is a no-op. Manage game audio locally; it will be removed in a future major release.", false)]
+        public static Task<bool> ToggleMute()
+        {
+            Debug.LogWarning("Wavedash.SDK.ToggleMute() is deprecated and is now a no-op. Manage game audio locally; this method will be removed in a future major release.");
+            return Task.FromResult(false);
+        }
 
         // ===========
         // User Info
@@ -2210,12 +2183,6 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("FullscreenChanged Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, _onFullscreenChanged);
-            }
-
-            public void MuteChanged(string dataJson)
-            {
-                if (_debug) Debug.Log("MuteChanged Signal Received from WavedashJS: " + dataJson);
-                TryInvoke(dataJson, _onMuteChanged);
             }
 
             public void EntitlementsGranted(string dataJson)
