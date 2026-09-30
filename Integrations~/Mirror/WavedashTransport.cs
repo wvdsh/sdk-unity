@@ -138,7 +138,7 @@ public class WavedashTransport : Transport
     void OnP2PConnectionFailed(Dictionary<string, object> data)
     {
         string userId = data.ContainsKey("userId") ? data["userId"].ToString() : "unknown";
-        string reason = data.ContainsKey("reason") ? data["reason"].ToString() : "unknown";
+        string reason = data.ContainsKey("error") ? data["error"].ToString() : "unknown";
 
         if (_serverActive && userIdToConnection.TryGetValue(userId, out int connId))
         {
