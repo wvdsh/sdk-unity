@@ -121,7 +121,7 @@ public class WavedashTransport : NetworkTransport
     void OnP2PConnectionFailed(Dictionary<string, object> data)
     {
         string userId = data.ContainsKey("userId") ? data["userId"].ToString() : null;
-        string reason = data.ContainsKey("reason") ? data["reason"].ToString() : "unknown";
+        string reason = data.ContainsKey("error") ? data["error"].ToString() : "unknown";
         Debug.LogWarning($"[WavedashTransport] P2P connection failed for {userId}: {reason}");
         if (userId != null)
             DisconnectPeer(userId);
