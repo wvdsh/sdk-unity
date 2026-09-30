@@ -2253,7 +2253,7 @@ namespace Wavedash
 
             public void PurchaseCompleted(string dataJson)
             {
-                if (_debug) Debug.Log("PurchaseCompleted Signal Received from WavedashJS: " + dataJson);
+                if (_debug) Debug.Log("PurchaseCompleted Signal Received from WavedashJS");
                 TryInvoke(dataJson, _onPurchaseCompleted);
             }
 
