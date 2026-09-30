@@ -949,6 +949,41 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_GetUnfulfilledPurchases__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_GetUnfulfilledPurchases: function (callbackPtr, requestIdPtr) {
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.getUnfulfilledPurchases) {
+          return Promise.reject('WavedashJS.getUnfulfilledPurchases not available');
+        }
+        return window.WavedashJS.getUnfulfilledPurchases();
+      },
+      cb,
+      requestId
+    );
+  },
+
+  WavedashJS_FulfillPurchase__deps: ['$WVD_Helpers', '$__getWasmFunction'],
+  WavedashJS_FulfillPurchase: function (purchaseIdPtr, callbackPtr, requestIdPtr) {
+    var purchaseId = UTF8ToString(purchaseIdPtr);
+    var requestId = UTF8ToString(requestIdPtr);
+    var cb = __getWasmFunction(callbackPtr);
+
+    WVD_Helpers.run(
+      function () {
+        if (typeof window === 'undefined' || !window.WavedashJS || !window.WavedashJS.fulfillPurchase) {
+          return Promise.reject('WavedashJS.fulfillPurchase not available');
+        }
+        return window.WavedashJS.fulfillPurchase(purchaseId);
+      },
+      cb,
+      requestId
+    );
+  },
+
   WavedashJS_ListFriends__deps: ['$WVD_Helpers', '$__getWasmFunction'],
   WavedashJS_ListFriends: function (callbackPtr, requestIdPtr) {
     var requestId = UTF8ToString(requestIdPtr);

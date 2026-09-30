@@ -162,12 +162,32 @@ namespace Wavedash
         /// <see cref="TriggerPaywall"/>, a purchase on the game page, or a gift redemption).
         /// Entitlements are already refreshed when this fires, so <see cref="IsEntitled"/>
         /// reflects the new content. Payload: { contentIdentifiers: string[] }.
+        /// Deprecated: use <see cref="OnPurchaseCompleted"/>, which also covers consumables.
         /// </summary>
         private static Action<Dictionary<string, object>> _onEntitlementsGranted;
+        [Obsolete("Use OnPurchaseCompleted, which also covers consumables.", false)]
         public static event Action<Dictionary<string, object>> OnEntitlementsGranted
         {
             add => Subscribe(ref _onEntitlementsGranted, "EntitlementsGranted", value);
             remove => _onEntitlementsGranted -= value;
+        }
+        /// <summary>
+        /// Fired once per purchase made while the game is running (the game's own
+        /// <see cref="TriggerPaywall"/>, the game page, a gift, another tab), plus, at launch,
+        /// once per consumable still unfulfilled. Payload: { purchaseId, contentIdentifier,
+        /// type, fulfilled, purchasedAt, receiptJwt }, where type is a
+        /// <see cref="WavedashConstants.PurchaseType"/>. Durables arrive with
+        /// fulfilled true and <see cref="IsEntitled"/> already true. For a consumable, grant it,
+        /// then call <see cref="FulfillPurchase"/>; until then it's redelivered every launch,
+        /// so dedupe on purchaseId if you persist grants. receiptJwt is the same signed JWT
+        /// the purchase.completed webhook sends, for verifying on your backend.
+        /// Subscribe before calling Init, since launch deliveries fire once per session.
+        /// </summary>
+        private static Action<Dictionary<string, object>> _onPurchaseCompleted;
+        public static event Action<Dictionary<string, object>> OnPurchaseCompleted
+        {
+            add => Subscribe(ref _onPurchaseCompleted, "PurchaseCompleted", value);
+            remove => _onPurchaseCompleted -= value;
         }
 
         private static readonly HashSet<string> _trackedEventListeners = new();
@@ -342,6 +362,12 @@ namespace Wavedash
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_TriggerPaywall(string contentIdentifier, IntPtr callbackPtr, string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_GetUnfulfilledPurchases(IntPtr callbackPtr, string requestId);
+
+        [DllImport("__Internal")]
+        private static extern void WavedashJS_FulfillPurchase(string purchaseId, IntPtr callbackPtr, string requestId);
 
         [DllImport("__Internal")]
         private static extern void WavedashJS_ListFriends(IntPtr callbackPtr, string requestId);
@@ -1965,6 +1991,7 @@ namespace Wavedash
         /// Trigger the Wavedash-rendered paywall flow for the given content. Resolves
         /// immediately with true if the player already owns it; otherwise
         /// opens the modal and resolves with whether the user completed the purchase.
+        /// For a consumable, grant it from <see cref="OnPurchaseCompleted"/> rather than from this result.
         /// </summary>
         /// <param name="contentIdentifier">The identifier of the content to trigger the paywall for.</param>
         /// <returns>True if the user owns the content (either previously or newly purchased), false otherwise.</returns>
@@ -1974,6 +2001,39 @@ namespace Wavedash
                 WavedashJS_TriggerPaywall(contentIdentifier, fnPtr, requestId));
 #else
             Task.FromResult(false);
+#endif
+
+        /// <summary>
+        /// Consumable purchases the game hasn't fulfilled, oldest first, each shaped like the
+        /// <see cref="OnPurchaseCompleted"/> payload. These already arrive through
+        /// OnPurchaseCompleted at launch, but each purchase fires once per session: use this
+        /// to retry one whose <see cref="FulfillPurchase"/> call failed.
+        /// </summary>
+        /// <returns>The unfulfilled purchases, or null on failure.</returns>
+        public static Task<List<Dictionary<string, object>>> GetUnfulfilledPurchases() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<List<Dictionary<string, object>>>((fnPtr, requestId) =>
+                WavedashJS_GetUnfulfilledPurchases(fnPtr, requestId));
+#else
+            Task.FromResult<List<Dictionary<string, object>>>(null);
+#endif
+
+        /// <summary>
+        /// Mark a consumable purchase fulfilled once the grant is saved, so it stops being
+        /// redelivered. A game's backend can do the same with
+        /// POST /api/purchases/{purchaseId}/fulfill and the webhook's JWT; both are idempotent,
+        /// so calling either or both is safe.
+        /// </summary>
+        /// <param name="purchaseId">The purchaseId from the OnPurchaseCompleted payload.</param>
+        /// <returns>{ status } where status is a <see cref="WavedashConstants.FulfillPurchaseStatus"/>:
+        /// FULFILLED, ALREADY_FULFILLED (also success), or NOT_FOUND (unknown or refunded:
+        /// don't grant it). Null on failure.</returns>
+        public static Task<Dictionary<string, object>> FulfillPurchase(string purchaseId) =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            InvokeJs<Dictionary<string, object>>((fnPtr, requestId) =>
+                WavedashJS_FulfillPurchase(purchaseId, fnPtr, requestId));
+#else
+            Task.FromResult<Dictionary<string, object>>(null);
 #endif
 
         // ===========
@@ -2189,6 +2249,12 @@ namespace Wavedash
             {
                 if (_debug) Debug.Log("EntitlementsGranted Signal Received from WavedashJS: " + dataJson);
                 TryInvoke(dataJson, _onEntitlementsGranted);
+            }
+
+            public void PurchaseCompleted(string dataJson)
+            {
+                if (_debug) Debug.Log("PurchaseCompleted Signal Received from WavedashJS: " + dataJson);
+                TryInvoke(dataJson, _onPurchaseCompleted);
             }
 
             private void TryInvoke(string json, Action<Dictionary<string, object>> action)

@@ -65,6 +65,28 @@ public static class WavedashConstants
     public const string PEER_NOT_READY = "PEER_NOT_READY";
   }
 
+  /// <summary>
+  /// type field on the OnPurchaseCompleted payload.
+  /// </summary>
+  public static class PurchaseType
+  {
+    public const string DURABLE = "DURABLE";
+    public const string CONSUMABLE = "CONSUMABLE";
+  }
+
+  /// <summary>
+  /// status field on the FulfillPurchase result.
+  /// </summary>
+  public static class FulfillPurchaseStatus
+  {
+    /// <summary>Marked fulfilled by this call.</summary>
+    public const string FULFILLED = "FULFILLED";
+    /// <summary>Also success: the game or its backend fulfilled it earlier, or it's a durable.</summary>
+    public const string ALREADY_FULFILLED = "ALREADY_FULFILLED";
+    /// <summary>Unknown purchase, or it was refunded. Don't grant it.</summary>
+    public const string NOT_FOUND = "NOT_FOUND";
+  }
+
   public static class LeaderboardSortMethod
   {
     public const int ASCENDING = 0;
