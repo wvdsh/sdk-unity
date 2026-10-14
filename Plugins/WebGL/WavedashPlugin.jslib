@@ -825,6 +825,11 @@ mergeInto(LibraryManager.library, {
     );
   },
 
+  WavedashJS_GetUserLanguage__deps: ['$AllocUTF8'],
+  WavedashJS_GetUserLanguage: function () {
+    return AllocUTF8(window.WavedashJS.getUserLanguage());
+  },
+
   WavedashJS_GetUserId__deps: ['$AllocUTF8'],
   WavedashJS_GetUserId: function () {
     if (typeof window !== 'undefined' &&
