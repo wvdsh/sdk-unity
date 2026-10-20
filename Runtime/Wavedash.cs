@@ -1847,7 +1847,7 @@ namespace Wavedash
 #if UNITY_WEBGL && !UNITY_EDITOR
             return WavedashJS_GetUserLanguage();
 #else
-            return "en";
+            return WavedashConstants.LanguageCode.ENGLISH;
 #endif
         }
 
