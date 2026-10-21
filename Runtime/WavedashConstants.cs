@@ -1,5 +1,46 @@
 public static class WavedashConstants
 {
+  public static class LanguageCode
+  {
+    public const string ARABIC = "ar";
+    public const string BULGARIAN = "bg";
+    public const string CATALAN = "ca";
+    public const string CHINESE_SIMPLIFIED = "zh-CN";
+    public const string CHINESE_TRADITIONAL = "zh-TW";
+    public const string CROATIAN = "hr";
+    public const string CZECH = "cs";
+    public const string DANISH = "da";
+    public const string DUTCH = "nl";
+    public const string ENGLISH = "en";
+    public const string ESPERANTO = "eo";
+    public const string FINNISH = "fi";
+    public const string FRENCH = "fr";
+    public const string GALICIAN = "gl";
+    public const string GERMAN = "de";
+    public const string GREEK = "el";
+    public const string HUNGARIAN = "hu";
+    public const string INDONESIAN = "id";
+    public const string ITALIAN = "it";
+    public const string JAPANESE = "ja";
+    public const string KOREAN = "ko";
+    public const string LATVIAN = "lv";
+    public const string LITHUANIAN = "lt";
+    public const string MALAY = "ms";
+    public const string NORWEGIAN = "no";
+    public const string POLISH = "pl";
+    public const string PORTUGUESE = "pt";
+    public const string PORTUGUESE_BRAZIL = "pt-BR";
+    public const string ROMANIAN = "ro";
+    public const string RUSSIAN = "ru";
+    public const string SPANISH = "es";
+    public const string SPANISH_LATIN_AMERICA = "es-419";
+    public const string SWEDISH = "sv";
+    public const string THAI = "th";
+    public const string TURKISH = "tr";
+    public const string UKRAINIAN = "uk";
+    public const string VIETNAMESE = "vi";
+  }
+
   public static class UGCItemType
   {
     public const int SCREENSHOT = 0;

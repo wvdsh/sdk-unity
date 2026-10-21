@@ -343,6 +343,9 @@ namespace Wavedash
         private static extern string WavedashJS_GetUserId();
 
         [DllImport("__Internal")]
+        private static extern string WavedashJS_GetUserLanguage();
+
+        [DllImport("__Internal")]
         private static extern string WavedashJS_GetUsername();
 
         [DllImport("__Internal")]
@@ -1838,6 +1841,20 @@ namespace Wavedash
         // ===========
         // User Info
         // ===========
+
+        /// <summary>
+        /// Gets the current user's preferred language code, such as "en" or "pt-BR".
+        /// Compare it with the WavedashConstants.LanguageCode values.
+        /// </summary>
+        /// <returns>The language code string.</returns>
+        public static string GetUserLanguage()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return WavedashJS_GetUserLanguage();
+#else
+            return WavedashConstants.LanguageCode.ENGLISH;
+#endif
+        }
 
         /// <summary>
         /// Gets the current user's ID. Results are cached after the first call.
