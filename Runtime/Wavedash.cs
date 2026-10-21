@@ -200,6 +200,7 @@ namespace Wavedash
         private static Dictionary<string, object> _cachedUser;
         private static string _cachedUserId;
         private static string _cachedUsername;
+        private static string _cachedUserLanguage;
 
         // Pending TaskCompletionSources by requestId
         private static readonly Dictionary<string, object> _pending = new();
@@ -1844,13 +1845,19 @@ namespace Wavedash
 
         /// <summary>
         /// Gets the current user's preferred language code, such as "en" or "pt-BR".
-        /// Compare it with the WavedashConstants.LanguageCode values.
+        /// Compare it with the WavedashConstants.LanguageCode values. Results are cached after the first call.
         /// </summary>
         /// <returns>The language code string.</returns>
         public static string GetUserLanguage()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_GetUserLanguage();
+            if (!string.IsNullOrEmpty(_cachedUserLanguage))
+            {
+                return _cachedUserLanguage;
+            }
+
+            _cachedUserLanguage = WavedashJS_GetUserLanguage();
+            return _cachedUserLanguage;
 #else
             return WavedashConstants.LanguageCode.ENGLISH;
 #endif
