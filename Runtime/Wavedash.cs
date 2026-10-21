@@ -341,15 +341,6 @@ namespace Wavedash
             string requestId);
 
         [DllImport("__Internal")]
-        private static extern string WavedashJS_GetUserId();
-
-        [DllImport("__Internal")]
-        private static extern string WavedashJS_GetUserLanguage();
-
-        [DllImport("__Internal")]
-        private static extern string WavedashJS_GetUsername();
-
-        [DllImport("__Internal")]
         private static extern string WavedashJS_GetUsernameForUser(string userId);
 
         [DllImport("__Internal")]
@@ -685,6 +676,9 @@ namespace Wavedash
                 try
                 {
                     _cachedUser = JsonConvert.DeserializeObject<Dictionary<string, object>>(userJson);
+                    _cachedUserId = _cachedUser["id"] as string;
+                    _cachedUsername = _cachedUser["username"] as string;
+                    _cachedUserLanguage = _cachedUser["language"] as string;
                     return _cachedUser;
                 }
                 catch (Exception e)
@@ -1851,12 +1845,11 @@ namespace Wavedash
         public static string GetUserLanguage()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (!string.IsNullOrEmpty(_cachedUserLanguage))
+            if (string.IsNullOrEmpty(_cachedUserLanguage))
             {
-                return _cachedUserLanguage;
+                GetUser();
             }
 
-            _cachedUserLanguage = WavedashJS_GetUserLanguage();
             return _cachedUserLanguage;
 #else
             return WavedashConstants.LanguageCode.ENGLISH;
@@ -1870,12 +1863,11 @@ namespace Wavedash
         public static string GetUserId()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (!string.IsNullOrEmpty(_cachedUserId))
+            if (string.IsNullOrEmpty(_cachedUserId))
             {
-                return _cachedUserId;
+                GetUser();
             }
 
-            _cachedUserId = WavedashJS_GetUserId();
             return _cachedUserId;
 #else
             return null;
@@ -1889,12 +1881,11 @@ namespace Wavedash
         public static string GetUsername()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (!string.IsNullOrEmpty(_cachedUsername))
+            if (string.IsNullOrEmpty(_cachedUsername))
             {
-                return _cachedUsername;
+                GetUser();
             }
 
-            _cachedUsername = WavedashJS_GetUsername();
             return _cachedUsername;
 #else
             return null;
