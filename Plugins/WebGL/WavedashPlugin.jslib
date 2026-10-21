@@ -825,42 +825,6 @@ mergeInto(LibraryManager.library, {
     );
   },
 
-  WavedashJS_GetUserLanguage__deps: ['$AllocUTF8'],
-  WavedashJS_GetUserLanguage: function () {
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.getUserLanguage === 'function') {
-      return AllocUTF8(window.WavedashJS.getUserLanguage());
-    }
-    return 0;
-  },
-
-  WavedashJS_GetUserId__deps: ['$AllocUTF8'],
-  WavedashJS_GetUserId: function () {
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.getUserId === 'function') {
-      var userId = window.WavedashJS.getUserId();
-      if (userId) {
-        return AllocUTF8(userId);
-      }
-    }
-    return 0;
-  },
-
-  WavedashJS_GetUsername__deps: ['$AllocUTF8'],
-  WavedashJS_GetUsername: function () {
-    if (typeof window !== 'undefined' &&
-        window.WavedashJS &&
-        typeof window.WavedashJS.getUsername === 'function') {
-      var username = window.WavedashJS.getUsername();
-      if (username) {
-        return AllocUTF8(username);
-      }
-    }
-    return 0;
-  },
-
   WavedashJS_GetUsernameForUser__deps: ['$AllocUTF8'],
   WavedashJS_GetUsernameForUser: function (userIdPtr) {
     var userId = UTF8ToString(userIdPtr);

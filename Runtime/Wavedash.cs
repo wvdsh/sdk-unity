@@ -200,6 +200,7 @@ namespace Wavedash
         private static Dictionary<string, object> _cachedUser;
         private static string _cachedUserId;
         private static string _cachedUsername;
+        private static string _cachedUserLanguage;
 
         // Pending TaskCompletionSources by requestId
         private static readonly Dictionary<string, object> _pending = new();
@@ -338,15 +339,6 @@ namespace Wavedash
         private static extern void WavedashJS_ToggleFullscreen(
             IntPtr callbackPtr,
             string requestId);
-
-        [DllImport("__Internal")]
-        private static extern string WavedashJS_GetUserId();
-
-        [DllImport("__Internal")]
-        private static extern string WavedashJS_GetUserLanguage();
-
-        [DllImport("__Internal")]
-        private static extern string WavedashJS_GetUsername();
 
         [DllImport("__Internal")]
         private static extern string WavedashJS_GetUsernameForUser(string userId);
@@ -684,6 +676,9 @@ namespace Wavedash
                 try
                 {
                     _cachedUser = JsonConvert.DeserializeObject<Dictionary<string, object>>(userJson);
+                    _cachedUserId = _cachedUser["id"] as string;
+                    _cachedUsername = _cachedUser["username"] as string;
+                    _cachedUserLanguage = _cachedUser["language"] as string;
                     return _cachedUser;
                 }
                 catch (Exception e)
@@ -1844,13 +1839,18 @@ namespace Wavedash
 
         /// <summary>
         /// Gets the current user's preferred language code, such as "en" or "pt-BR".
-        /// Compare it with the WavedashConstants.LanguageCode values.
+        /// Compare it with the WavedashConstants.LanguageCode values. Results are cached after the first call.
         /// </summary>
         /// <returns>The language code string.</returns>
         public static string GetUserLanguage()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return WavedashJS_GetUserLanguage();
+            if (string.IsNullOrEmpty(_cachedUserLanguage))
+            {
+                GetUser();
+            }
+
+            return _cachedUserLanguage;
 #else
             return WavedashConstants.LanguageCode.ENGLISH;
 #endif
@@ -1863,12 +1863,11 @@ namespace Wavedash
         public static string GetUserId()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (!string.IsNullOrEmpty(_cachedUserId))
+            if (string.IsNullOrEmpty(_cachedUserId))
             {
-                return _cachedUserId;
+                GetUser();
             }
 
-            _cachedUserId = WavedashJS_GetUserId();
             return _cachedUserId;
 #else
             return null;
@@ -1882,12 +1881,11 @@ namespace Wavedash
         public static string GetUsername()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (!string.IsNullOrEmpty(_cachedUsername))
+            if (string.IsNullOrEmpty(_cachedUsername))
             {
-                return _cachedUsername;
+                GetUser();
             }
 
-            _cachedUsername = WavedashJS_GetUsername();
             return _cachedUsername;
 #else
             return null;
